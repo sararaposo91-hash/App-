@@ -978,10 +978,19 @@ function delDump(id){ state.dump=state.dump.filter(x=>x.id!==id); commit(); }
 
 /* ---------- data ---------- */
 function exportData(){
-  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const name = "clearday-backup-"+todayKey()+".json";
+  const json = JSON.stringify(state,null,2);
+  if(window.claude && window.claude.downloads){
+    window.claude.downloads.save({filename:name, data:json}).catch(e=>{
+      if(e && e.code==="declined") return;
+      alert("Couldn't save the backup ("+(e&&e.message||"unknown error")+"). Try again in a moment.");
+    });
+    return;
+  }
+  const blob = new Blob([json],{type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "clearday-backup-"+todayKey()+".json";
+  a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
 }
