@@ -71,6 +71,16 @@ label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:3px}
 .progressbar>div{height:100%;background:var(--accent);border-radius:999px;transition:width .3s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+/* week strip */
+.weekstrip{display:flex;gap:5px;align-items:stretch;margin-top:12px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.daychip{flex:1 0 40px;min-width:40px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0 5px;border-radius:11px;border:1px solid var(--line);background:var(--card);font-size:.68rem;letter-spacing:.03em;color:var(--muted);line-height:1.2}
+.daychip .dnum{font-size:1.02rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.daychip.tod{border-color:var(--accent)}
+.daychip.tod .dnum{color:var(--accent)}
+.daychip.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.daychip.sel .dnum{color:var(--accent-ink)}
+.wknav{flex:none;width:26px;padding:0;border-radius:11px;color:var(--muted);font-size:1.1rem;background:transparent}
+
 /* timeline */
 .tl{list-style:none;margin:0;padding:0}
 .tl li{position:relative;padding:0 0 4px 0}
@@ -252,7 +262,7 @@ function defaults(){
 }
 function sid(){ return Math.random().toString(36).slice(2,9); }
 
-let state, ui = {tab:"today", editBlock:null, progressEx:"", showAllHist:false, sore:0};
+let state, ui = {tab:"today", viewDate:null, editBlock:null, progressEx:"", showAllHist:false, sore:0};
 
 function load(){
   const d = defaults();
@@ -278,6 +288,8 @@ function pad(n){ return String(n).padStart(2,"0"); }
 function keyOf(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
 function todayKey(){ return keyOf(new Date()); }
 function yesterdayKey(){ const d=new Date(); d.setDate(d.getDate()-1); return keyOf(d); }
+function addDaysKey(k,n){ const [y,m,d]=k.split("-").map(Number); const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+n); return keyOf(dt); }
+function viewKey(){ return ui.viewDate || todayKey(); }
 function fmtTime(t){
   if(!t) return "";
   const [h,m] = t.split(":").map(Number);
@@ -347,13 +359,16 @@ function renderNav(){
     `<button class="${ui.tab===t?"on":""}" onclick="setTab('${t}')" aria-label="${l}">${ICONS[t]}<span>${l}</span></button>`
   ).join("");
 }
-function setTab(t){ ui.tab=t; render(); window.scrollTo(0,0); }
+function setTab(t){ if(t==="today") ui.viewDate=null; ui.tab=t; render(); window.scrollTo(0,0); }
 
 /* ---------- TODAY ---------- */
 function vToday(){
-  const k = todayKey();
+  const k = viewKey();
+  const isToday = k === todayKey();
+  const [vy,vm,vd] = k.split("-").map(Number);
+  const viewDate = new Date(vy,vm-1,vd);
+  const wd = viewDate.getDay();
   const now = new Date();
-  const wd = now.getDay();
   const meta = dayMeta(k);
   const blocks = blocksFor(k);
   const doneCount = blocks.filter(b=>meta.checks[b.id]).length;
@@ -362,20 +377,35 @@ function vToday(){
   const greet = hr<12 ? "Good morning" : hr<17 ? "Good afternoon" : "Good evening";
   const nowMin = hr*60 + now.getMinutes();
   let nowId = null;
-  for(const b of blocks){
+  if(isToday) for(const b of blocks){
     const [h,m] = b.start.split(":").map(Number);
     if(h*60+m <= nowMin) nowId = b.id;
   }
   const extras = state.dump.filter(d=>d.today && !d.done);
   const isWkday = wd>=1 && wd<=5;
 
+  // week strip: Mon–Sun of the viewed week
+  const monday = addDaysKey(k, -((wd+6)%7));
+  let strip = `<div class="weekstrip"><button class="wknav" onclick="setDay('${addDaysKey(k,-7)}')" aria-label="Previous week">‹</button>`;
+  for(let i=0;i<7;i++){
+    const dk = addDaysKey(monday,i);
+    const dnum = +dk.split("-")[2];
+    const dwd = (i+1)%7;
+    strip += `<button class="daychip ${dk===k?"sel":""} ${dk===todayKey()?"tod":""}" onclick="setDay('${dk}')" aria-label="${fmtDateShort(dk)}">${DAYS[dwd]}<span class="dnum">${dnum}</span></button>`;
+  }
+  strip += `<button class="wknav" onclick="setDay('${addDaysKey(k,7)}')" aria-label="Next week">›</button></div>`;
+
   let h = `
   <header style="margin-bottom:14px">
-    <p class="sub" style="margin:0">${greet}, ${esc(state.settings.name)}. Today is handled — just follow the list.</p>
-    <h1>${DAYS[wd]==="Sun"?"Sunday":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][wd]}, ${now.toLocaleDateString("en-US",{month:"long",day:"numeric"})}</h1>
+    <p class="sub" style="margin:0">${isToday
+      ? `${greet}, ${esc(state.settings.name)}. Today is handled — just follow the list.`
+      : `Looking ahead — anything you change here is saved for this day.`}</p>
+    <h1>${viewDate.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</h1>
+    ${strip}
     <div class="row wrapover" style="margin-top:10px">
       ${isWkday?`<button class="chip ${meta.pickup?"on":""}" onclick="togglePickup()">${meta.pickup?"✓ Pickup day — free until 11:30":"No pickup — free until 12:30"}</button>`:""}
       <span class="chip">${doneCount}/${blocks.length} done</span>
+      ${isToday?"":`<button class="chip" onclick="setDay('${todayKey()}')">↩ Back to today</button>`}
     </div>
     <div class="progressbar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="width:${pct}%"></div></div>
   </header>
@@ -395,7 +425,7 @@ function vToday(){
   }
   h += `</ul>`;
 
-  if(extras.length){
+  if(isToday && extras.length){
     h += `<h2>Also today</h2><div class="card">` + extras.map(d=>`
       <button class="subcheck" onclick="toggleDump('${d.id}')"><span class="box">✓</span><span>${esc(d.text)}</span></button>`).join("") + `</div>`;
   }
@@ -406,6 +436,7 @@ function vToday(){
   <p class="tiny" style="text-align:center">Times, blocks and rotations are all editable in <b>More</b>.</p>`;
   return h;
 }
+function setDay(k){ ui.viewDate = (k===todayKey()) ? null : k; render(); window.scrollTo(0,0); }
 
 function blockBody(b, k, wd){
   const meta = dayMeta(k);
@@ -436,7 +467,7 @@ function blockBody(b, k, wd){
     const r = state.recipes.find(x=>x.id===state.mealPlan[wd]);
     if(r){
       h += `<div class="mini"><div class="row">${r.img?`<img class="thumb" src="${r.img}" alt="">`:`<span class="thumb emj">${tagEmoji(r.tag)}</span>`}
-        <div class="grow"><b>Tonight: ${esc(r.name)}</b>${r.url?`<div class="linkrow" style="margin-top:4px"><a href="${esc(r.url)}" target="_blank" rel="noopener">Open recipe ↗</a></div>`:""}</div></div></div>`;
+        <div class="grow"><b>${k===todayKey()?"Tonight":"Dinner plan"}: ${esc(r.name)}</b>${r.url?`<div class="linkrow" style="margin-top:4px"><a href="${esc(r.url)}" target="_blank" rel="noopener">Open recipe ↗</a></div>`:""}</div></div></div>`;
     }else{
       h += `<div class="linkrow"><a href="#" onclick="setTab('meals');return false">Nothing planned — open Meals →</a></div>`;
     }
@@ -465,9 +496,9 @@ function suppChecks(k, time){
     return `<button class="subcheck ${on?"on":""}" onclick="toggleCheck('supp:${s.id}')"><span class="box">✓</span><span>${esc(s.name)}${s.note?` <span class="tiny">· ${esc(s.note)}</span>`:""}</span></button>`;
   }).join("") + `</div>`;
 }
-function toggleCheck(id){ const m=dayMeta(todayKey()); m.checks[id]=!m.checks[id]; commit(); }
-function togglePickup(){ const m=dayMeta(todayKey()); m.pickup=!m.pickup; commit(); }
-function rerollSophia(){ const m=dayMeta(todayKey()); m.roll=(m.roll||0)+1; commit(); }
+function toggleCheck(id){ const m=dayMeta(viewKey()); m.checks[id]=!m.checks[id]; commit(); }
+function togglePickup(){ const m=dayMeta(viewKey()); m.pickup=!m.pickup; commit(); }
+function rerollSophia(k){ const m=dayMeta(k||viewKey()); m.roll=(m.roll||0)+1; commit(); }
 function quickAdd(){
   const el=document.getElementById("quickadd");
   if(!el.value.trim()) return;
@@ -792,7 +823,7 @@ function vSophia(){
   let h = `<h1>Sophia</h1><p class="sub">The afternoon runs itself when the ideas are ready in advance.</p>
   <div class="card"><h3>Today's picks</h3>
     ${picks.map(p=>`<div class="listitem"><span class="catdot" style="background:var(--c-sophia)"></span><div class="grow">${esc(p.title)}<div class="tiny">${esc(p.tag)}</div></div></div>`).join("")}
-    <button class="small" style="margin-top:8px" onclick="rerollSophia()">↻ Shuffle</button>
+    <button class="small" style="margin-top:8px" onclick="rerollSophia('${todayKey()}')">↻ Shuffle</button>
   </div>
   <h2>Idea bank</h2><p class="tiny">These feed the 2:30 and 3:30 slots on the Today screen. Add your own — she'll never run out.</p>
   <div class="card">`
