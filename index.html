@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#47705E">
+<title>Clearday</title>
+<style>
+:root{
+  --bg:#F4F3F6; --card:#FFFFFF; --card2:#EDEBF1; --ink:#2C2733; --muted:#6F6879;
+  --line:#E2DFE8; --accent:#47705E; --accent-soft:#47705E1f; --accent-ink:#FFFFFF;
+  --c-work:#5867A8; --c-sophia:#C06B54; --c-self:#8A5B87; --c-home:#A5813F;
+  --c-health:#47705E; --c-evening:#7A6AAE;
+  --good:#3E7A52; --warn:#A5813F; --bad:#A94F44;
+  --shadow:0 1px 2px rgba(44,39,51,.06),0 4px 14px rgba(44,39,51,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191621; --card:#232030; --card2:#2B2839; --ink:#ECE8F1; --muted:#A49DB1;
+    --line:#35313F; --accent:#7FB39E; --accent-soft:#7FB39E29; --accent-ink:#14211C;
+    --c-work:#93A1E0; --c-sophia:#E09880; --c-self:#C295BF; --c-home:#D2B171;
+    --c-health:#7FB39E; --c-evening:#AFA2E4;
+    --good:#7FB39E; --warn:#D2B171; --bad:#DB8B80;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191621; --card:#232030; --card2:#2B2839; --ink:#ECE8F1; --muted:#A49DB1;
+  --line:#35313F; --accent:#7FB39E; --accent-soft:#7FB39E29; --accent-ink:#14211C;
+  --c-work:#93A1E0; --c-sophia:#E09880; --c-self:#C295BF; --c-home:#D2B171;
+  --c-health:#7FB39E; --c-evening:#AFA2E4;
+  --good:#7FB39E; --warn:#D2B171; --bad:#DB8B80;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:16px; line-height:1.5;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:640px;margin:0 auto;padding:18px 16px 8px}
+h1,h2,h3{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:1.7rem;line-height:1.2}
+h2{font-size:1.25rem;margin:26px 0 10px}
+h3{font-size:1.05rem}
+p{margin:.4em 0}
+a{color:var(--accent)}
+.sub{color:var(--muted);font-size:.95rem}
+.tiny{color:var(--muted);font-size:.8rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}
+.row.wrapover{flex-wrap:wrap}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.stack{display:flex;flex-direction:column;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.ghost{background:transparent}
+button.small{padding:4px 10px;font-size:.85rem;border-radius:8px}
+button.danger{color:var(--bad);border-color:var(--bad)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:60px}
+label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:3px}
+.field{margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:.8rem;font-weight:600;letter-spacing:.02em;background:var(--card2);color:var(--muted)}
+.chip.on{background:var(--accent);color:var(--accent-ink)}
+.catdot{width:8px;height:8px;border-radius:50%;flex:none}
+.progressbar{height:8px;border-radius:999px;background:var(--card2);overflow:hidden;margin-top:10px}
+.progressbar>div{height:100%;background:var(--accent);border-radius:999px;transition:width .3s}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* timeline */
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 4px 0}
+.block{display:flex;gap:12px;padding:12px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);margin-bottom:10px;border-left:4px solid var(--bcat,var(--line))}
+.block.done{opacity:.55}
+.block.now{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow)}
+.block .time{flex:none;width:64px;font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted);padding-top:3px}
+.block .time strong{display:block;color:var(--ink);font-size:.95rem}
+.block .body{flex:1;min-width:0}
+.block .title{font-weight:600}
+.block .note{color:var(--muted);font-size:.9rem;margin-top:2px;white-space:pre-line}
+.checkbtn{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:transparent;padding:0;display:grid;place-items:center;color:transparent;margin-top:2px}
+.checkbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.subchecks{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.subcheck{display:flex;align-items:center;gap:8px;font-size:.92rem;background:none;border:none;padding:2px 0;text-align:left;border-radius:6px}
+.subcheck .box{width:18px;height:18px;border-radius:5px;border:2px solid var(--line);flex:none;display:grid;place-items:center;color:transparent}
+.subcheck.on{color:var(--muted);text-decoration:line-through}
+.subcheck.on .box{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.linkrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.linkrow a{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:600;text-decoration:none}
+.mini{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:.92rem}
+.mini .mrow{display:flex;gap:10px;padding:2px 0}
+.mini .mrow span:first-child{flex:none;width:48px;color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
+
+/* nav */
+#nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;gap:2px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:10}
+#nav button{flex:1;max-width:110px;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;letter-spacing:.03em;color:var(--muted);padding:4px 2px;border-radius:10px}
+#nav button.on{color:var(--accent);background:var(--accent-soft)}
+#nav svg{width:22px;height:22px}
+
+/* gym */
+.setchip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border-radius:8px;padding:3px 8px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.setchip button{border:none;background:none;color:var(--muted);padding:0 2px;font-size:1rem;line-height:1}
+.exname{font-weight:600}
+table.stats{width:100%;border-collapse:collapse;font-size:.9rem}
+table.stats td,table.stats th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+table.stats th{color:var(--muted);font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.scrollx{overflow-x:auto}
+.sore{display:flex;gap:6px}
+.sore button{width:38px;height:38px;border-radius:10px;padding:0;font-variant-numeric:tabular-nums}
+.sore button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.pill{display:inline-block;border-radius:6px;padding:1px 8px;font-size:.75rem;font-weight:600;letter-spacing:.03em}
+.divider{border:none;border-top:1px solid var(--line);margin:18px 0}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+.dayselect{display:flex;gap:4px;flex-wrap:wrap}
+.dayselect button{width:36px;padding:6px 0;font-size:.8rem}
+.dayselect button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.listitem{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.listitem:last-child{border-bottom:none}
+.listitem .grow{flex:1;min-width:0}
+.faded{color:var(--muted);text-decoration:line-through}
+.notice{background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:.88rem;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app" aria-live="polite"></div>
+<nav id="nav" aria-label="Sections"></nav>
+<script>
+"use strict";
+/* ============================================================
+   Clearday — Sara's daily operating system.
+   All data lives in localStorage under KEY. Export/Import in More.
+   ============================================================ */
+const KEY = "clearday-v1";
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WEEKDAYS = [1,2,3,4,5], ALLDAYS = [0,1,2,3,4,5,6], WEEKEND = [0,6];
+const CATS = {
+  work:{label:"Work",v:"--c-work"}, sophia:{label:"Sophia",v:"--c-sophia"},
+  self:{label:"You",v:"--c-self"}, home:{label:"Home",v:"--c-home"},
+  health:{label:"Health",v:"--c-health"}, evening:{label:"Evening",v:"--c-evening"}
+};
+
+function defaults(){
+  return {
+    settings:{
+      name:"Sara",
+      skincareAM:["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"],
+      skincarePM:["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"]
+    },
+    blocks:[
+      {id:"supps-am",days:WEEKDAYS,pickup:"any",start:"08:40",end:"",title:"Water + morning supplements",note:"",cat:"self",type:"supps-am"},
+      {id:"skin-am",days:WEEKDAYS,pickup:"any",start:"08:45",end:"",title:"AM skincare",note:"",cat:"self",type:"skincare-am"},
+      {id:"journal",days:WEEKDAYS,pickup:"any",start:"08:55",end:"",title:"Morning journal",note:"Affirmation · manifestation · 3 gratitudes · yesterday's win · today's intention",cat:"self",type:"journal"},
+      {id:"meditate",days:WEEKDAYS,pickup:"any",start:"09:05",end:"",title:"Meditation or affirmations",note:"10 minutes. Headphones on, eyes closed.",cat:"self",type:"links"},
+      {id:"work-p",days:WEEKDAYS,pickup:"only",start:"09:15",end:"11:25",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
+      {id:"work-n",days:WEEKDAYS,pickup:"not",start:"09:15",end:"12:00",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
+      {id:"bonus",days:WEEKDAYS,pickup:"not",start:"12:00",end:"12:25",title:"Bonus block",note:"",cat:"home",type:"rot-bonus"},
+      {id:"pickup",days:WEEKDAYS,pickup:"only",start:"11:30",end:"12:15",title:"School pickup",note:"Leave by 11:30.",cat:"sophia",type:"simple"},
+      {id:"lunch",days:WEEKDAYS,pickup:"any",start:"12:30",end:"12:55",title:"Lunch + 10-minute reset",note:"Eat sitting down. Then one quick tidy of whatever room bugs you most.",cat:"home",type:"simple"},
+      {id:"strength",days:[1,3,5],pickup:"any",start:"13:00",end:"14:00",title:"Strength training",note:"Log it in the Gym tab so you can watch the numbers climb.",cat:"health",type:"gym"},
+      {id:"sidehustle",days:[2,4],pickup:"any",start:"13:00",end:"14:00",title:"Side-hustle hour",note:"",cat:"work",type:"rot-hustle"},
+      {id:"core",days:WEEKDAYS,pickup:"any",start:"14:10",end:"14:20",title:"Core exercises + stretch",note:"10 minutes, every weekday. Non-negotiable but tiny.",cat:"health",type:"simple"},
+      {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"14:30",end:"17:00",title:"Sophia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
+      {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:00",end:"18:00",title:"Dinner — Sophia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"simple"},
+      {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sophia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
+      {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + evening supplements",note:"",cat:"self",type:"skincare-pm"},
+      {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"22:00",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
+      {id:"wk-slow",days:WEEKEND,pickup:"any",start:"08:30",end:"",title:"Slow morning — supplements + skincare",note:"No rush today.",cat:"self",type:"supps-am"},
+      {id:"wk-journal",days:WEEKEND,pickup:"any",start:"09:00",end:"",title:"Journal if you feel like it",note:"Even one gratitude counts.",cat:"self",type:"journal"},
+      {id:"wk-family",days:WEEKEND,pickup:"any",start:"10:00",end:"12:30",title:"Family time",note:"Park, errand adventure, or nothing at all.",cat:"sophia",type:"simple"},
+      {id:"wk-reset",days:[6],pickup:"any",start:"13:00",end:"14:00",title:"One-hour house reset",note:"Timer on. Declutter one zone or catch up on laundry — then stop.",cat:"home",type:"simple"}
+    ],
+    rotations:{
+      bonus:{1:"Declutter one small zone (one drawer, one shelf — timer for 20 min)",
+             2:"Digital cleanup: AI chats + phone photos",
+             3:"Declutter one small zone (keep going where Monday left off)",
+             4:"Digital cleanup: YouTube + business accounts",
+             5:"Money & plans: budget check for the week + vacation ideas"},
+      hustle:{2:"Amazon influencer: film or edit one short video",
+              4:"AI side hustle: one concrete step (not research — output)"},
+      evening:{0:"Plan the week: look at the calendar, budget glance, pick next week's dinners",
+               1:"Coloring or a fun hobby — hands busy, brain off",
+               2:"Game night — you play, guilt-free",
+               3:"Free choice: games, show, or early night",
+               4:"Movie or show together",
+               5:"Date night with Centino 💛",
+               6:"Whatever feels good — no assignment tonight"}
+    },
+    supplements:[
+      {id:sid(),name:"Multivitamin",time:"AM",note:"with breakfast"},
+      {id:sid(),name:"Vitamin D",time:"AM",note:""},
+      {id:sid(),name:"Omega-3",time:"AM",note:"with food"},
+      {id:sid(),name:"Magnesium",time:"PM",note:"30 min before bed"}
+    ],
+    links:[
+      {id:sid(),label:"Insight Timer",url:"https://insighttimer.com/"},
+      {id:sid(),label:"10-min morning meditation (YouTube)",url:"https://www.youtube.com/results?search_query=10+minute+morning+meditation"},
+      {id:sid(),label:"Morning affirmations (YouTube)",url:"https://www.youtube.com/results?search_query=morning+affirmations+for+women"}
+    ],
+    activities:[
+      {id:sid(),title:"Sensory bin (rice, scoops, cups)",tag:"Sensory"},
+      {id:sid(),title:"Play-dough shapes and cutters",tag:"Fine motor"},
+      {id:sid(),title:"Block tower challenge — how tall before it falls?",tag:"Cognitive"},
+      {id:sid(),title:"Color scavenger hunt around the house",tag:"Cognitive"},
+      {id:sid(),title:"Dance party — 3 songs, big moves",tag:"Gross motor"},
+      {id:sid(),title:"Cushion obstacle course",tag:"Gross motor"},
+      {id:sid(),title:"Water play at the sink (cups + funnels)",tag:"Sensory"},
+      {id:sid(),title:"Sticker sorting by color or shape",tag:"Fine motor"},
+      {id:sid(),title:"Read 3 books, let her pick",tag:"Language"},
+      {id:sid(),title:"Pretend restaurant — she cooks, you order",tag:"Imaginative"},
+      {id:sid(),title:"Sidewalk chalk outside",tag:"Creative"},
+      {id:sid(),title:"Puzzle time",tag:"Cognitive"},
+      {id:sid(),title:"Help sort laundry by color",tag:"Practical life"},
+      {id:sid(),title:"Painting or big-crayon drawing",tag:"Creative"},
+      {id:sid(),title:"Counting games with snacks or toys",tag:"Cognitive"},
+      {id:sid(),title:"Music time — shakers, pots, spoons",tag:"Creative"},
+      {id:sid(),title:"Letter or shape hunt with a flashlight",tag:"Language"},
+      {id:sid(),title:"Nature walk — collect 5 treasures",tag:"Gross motor"}
+    ],
+    days:{},        // dateKey -> {pickup, checks:{}, roll:0}
+    journal:{},     // dateKey -> {affirmation,manifestation,g1,g2,g3,win,intention,notes}
+    workouts:[],    // {id,date,exercises:[{name,sets:[{w,r}]}]}
+    symptoms:[],    // {id,date,soreness,note}
+    dump:[],        // {id,text,today,done,ts}
+    draft:null
+  };
+}
+function sid(){ return Math.random().toString(36).slice(2,9); }
+
+let state, ui = {tab:"today", editBlock:null, progressEx:"", showAllHist:false, sore:0};
+
+function load(){
+  const d = defaults();
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw){ state = d; return; }
+    const s = JSON.parse(raw);
+    for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
+    for(const k of Object.keys(d.settings)) if(!s.settings[k]) s.settings[k] = d.settings[k];
+    state = s;
+  }catch(e){ state = d; }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function commit(){ save(); render(); }
+
+/* ---------- date helpers ---------- */
+function pad(n){ return String(n).padStart(2,"0"); }
+function keyOf(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function todayKey(){ return keyOf(new Date()); }
+function yesterdayKey(){ const d=new Date(); d.setDate(d.getDate()-1); return keyOf(d); }
+function fmtTime(t){
+  if(!t) return "";
+  const [h,m] = t.split(":").map(Number);
+  const ap = h>=12 ? "pm" : "am";
+  const hh = ((h+11)%12)+1;
+  return hh+":"+pad(m)+" "+ap;
+}
+function fmtDateShort(k){
+  const [y,m,d] = k.split("-").map(Number);
+  return DAYS[new Date(y,m-1,d).getDay()]+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]+" "+d;
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+
+function dayMeta(k){
+  if(!state.days[k]) state.days[k] = {pickup:true, checks:{}, roll:0};
+  if(!state.days[k].checks) state.days[k].checks = {};
+  return state.days[k];
+}
+
+/* ---------- today's schedule ---------- */
+function blocksFor(k){
+  const [y,m,d] = k.split("-").map(Number);
+  const wd = new Date(y,m-1,d).getDay();
+  const meta = dayMeta(k);
+  return state.blocks
+    .filter(b => (b.days||[]).includes(wd))
+    .filter(b => b.pickup==="any" || (b.pickup==="only" && meta.pickup) || (b.pickup==="not" && !meta.pickup))
+    .slice()
+    .sort((a,b)=> a.start.localeCompare(b.start));
+}
+function rotationNote(b, wd){
+  const r = state.rotations;
+  if(b.type==="rot-bonus")   return (r.bonus && r.bonus[wd]) || "Your choice — declutter, digital cleanup, or budget.";
+  if(b.type==="rot-hustle")  return (r.hustle && r.hustle[wd]) || "Pick one side-hustle task and finish it.";
+  if(b.type==="rot-evening") return (r.evening && r.evening[wd]) || "Whatever refills you.";
+  return b.note||"";
+}
+function sophiaPicks(k){
+  const meta = dayMeta(k);
+  const acts = state.activities;
+  if(!acts.length) return [];
+  const h = hash(k) + (meta.roll||0)*7919;
+  const a = acts[h % acts.length];
+  const b = acts[(h+3) % acts.length];
+  return a.id===b.id ? [a] : [a,b];
+}
+
+/* ================= RENDER ================= */
+function render(){
+  const app = document.getElementById("app");
+  const views = {today:vToday, journal:vJournal, gym:vGym, sophia:vSophia, more:vMore};
+  app.innerHTML = (views[ui.tab]||vToday)();
+  renderNav();
+}
+const ICONS = {
+  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.2 5.2l1.7 1.7M17.1 17.1l1.7 1.7M18.8 5.2l-1.7 1.7M6.9 17.1l-1.7 1.7"/></svg>',
+  journal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v16.5H6.5A1.5 1.5 0 0 0 5 21z"/><path d="M5 19.5V4.5M9 7.5h6"/></svg>',
+  gym:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12h3M18.5 12h3M8 12h8"/><rect x="5" y="7.5" width="3" height="9" rx="1"/><rect x="16" y="7.5" width="3" height="9" rx="1"/></svg>',
+  sophia:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.4-7.5 10-7.5 10z"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>'
+};
+function renderNav(){
+  const tabs = [["today","Today"],["journal","Journal"],["gym","Gym"],["sophia","Sophia"],["more","More"]];
+  document.getElementById("nav").innerHTML = tabs.map(([t,l])=>
+    `<button class="${ui.tab===t?"on":""}" onclick="setTab('${t}')" aria-label="${l}">${ICONS[t]}<span>${l}</span></button>`
+  ).join("");
+}
+function setTab(t){ ui.tab=t; render(); window.scrollTo(0,0); }
+
+/* ---------- TODAY ---------- */
+function vToday(){
+  const k = todayKey();
+  const now = new Date();
+  const wd = now.getDay();
+  const meta = dayMeta(k);
+  const blocks = blocksFor(k);
+  const doneCount = blocks.filter(b=>meta.checks[b.id]).length;
+  const pct = blocks.length ? Math.round(doneCount/blocks.length*100) : 0;
+  const hr = now.getHours();
+  const greet = hr<12 ? "Good morning" : hr<17 ? "Good afternoon" : "Good evening";
+  const nowMin = hr*60 + now.getMinutes();
+  let nowId = null;
+  for(const b of blocks){
+    const [h,m] = b.start.split(":").map(Number);
+    if(h*60+m <= nowMin) nowId = b.id;
+  }
+  const extras = state.dump.filter(d=>d.today && !d.done);
+  const isWkday = wd>=1 && wd<=5;
+
+  let h = `
+  <header style="margin-bottom:14px">
+    <p class="sub" style="margin:0">${greet}, ${esc(state.settings.name)}. Today is handled — just follow the list.</p>
+    <h1>${DAYS[wd]==="Sun"?"Sunday":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][wd]}, ${now.toLocaleDateString("en-US",{month:"long",day:"numeric"})}</h1>
+    <div class="row wrapover" style="margin-top:10px">
+      ${isWkday?`<button class="chip ${meta.pickup?"on":""}" onclick="togglePickup()">${meta.pickup?"✓ Pickup day — free until 11:30":"No pickup — free until 12:30"}</button>`:""}
+      <span class="chip">${doneCount}/${blocks.length} done</span>
+    </div>
+    <div class="progressbar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="width:${pct}%"></div></div>
+  </header>
+  <ul class="tl">`;
+
+  for(const b of blocks){
+    const done = !!meta.checks[b.id];
+    const cat = CATS[b.cat] || CATS.self;
+    h += `<li><div class="block ${done?"done":""} ${b.id===nowId&&!done?"now":""}" style="--bcat:var(${cat.v})">
+      <div class="time"><strong>${fmtTime(b.start)}</strong>${b.end?esc("– "+fmtTime(b.end)):""}</div>
+      <div class="body">
+        <div class="title">${esc(b.title)}</div>
+        ${blockBody(b, k, wd)}
+      </div>
+      <button class="checkbtn ${done?"on":""}" onclick="toggleCheck('${b.id}')" aria-label="Mark ${esc(b.title)} ${done?"not done":"done"}">✓</button>
+    </div></li>`;
+  }
+  h += `</ul>`;
+
+  if(extras.length){
+    h += `<h2>Also today</h2><div class="card">` + extras.map(d=>`
+      <button class="subcheck" onclick="toggleDump('${d.id}')"><span class="box">✓</span><span>${esc(d.text)}</span></button>`).join("") + `</div>`;
+  }
+  h += `<div class="card row">
+    <input id="quickadd" placeholder="Remembered something? Drop it here…" onkeydown="if(event.key==='Enter')quickAdd()">
+    <button class="primary" onclick="quickAdd()" style="flex:none">Add</button>
+  </div>
+  <p class="tiny" style="text-align:center">Times, blocks and rotations are all editable in <b>More</b>.</p>`;
+  return h;
+}
+
+function blockBody(b, k, wd){
+  const meta = dayMeta(k);
+  const note = rotationNote(b, wd);
+  let h = note ? `<div class="note">${esc(note)}</div>` : "";
+
+  if(b.type==="skincare-am" || b.type==="skincare-pm"){
+    const steps = b.type==="skincare-am" ? state.settings.skincareAM : state.settings.skincarePM;
+    h += `<div class="subchecks">` + steps.map((s,i)=>{
+      const on = !!meta.checks[b.id+":"+i];
+      return `<button class="subcheck ${on?"on":""}" onclick="toggleCheck('${b.id}:${i}')"><span class="box">✓</span><span>${esc(s)}</span></button>`;
+    }).join("") + `</div>`;
+    if(b.type==="skincare-pm") h += suppChecks(k,"PM");
+  }
+  if(b.type==="supps-am") h += suppChecks(k,"AM");
+  if(b.type==="journal"){
+    const j = state.journal[k]||{};
+    const filled = ["affirmation","manifestation","g1","g2","g3","win","intention"].filter(f=>j[f]&&j[f].trim()).length;
+    h += `<div class="linkrow"><a href="#" onclick="setTab('journal');return false">Open journal → ${filled?filled+"/7 done":"prompts ready"}</a></div>`;
+  }
+  if(b.type==="links"){
+    h += `<div class="linkrow">` + state.links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("") + `</div>`;
+  }
+  if(b.type==="gym"){
+    h += `<div class="linkrow"><a href="#" onclick="setTab('gym');return false">Open gym log →</a></div>`;
+  }
+  if(b.type==="sophia"){
+    const picks = sophiaPicks(k);
+    const p0 = picks[0]?picks[0].title:"Free play";
+    const p1 = picks[1]?picks[1].title:"Free play";
+    h += `<div class="mini">
+      <div class="mrow"><span>2:30</span><span>${esc(p0)}</span></div>
+      <div class="mrow"><span>3:00</span><span>Snack + books on the couch</span></div>
+      <div class="mrow"><span>3:30</span><span>${esc(p1)}</span></div>
+      <div class="mrow"><span>4:00</span><span>Outside time or big movement</span></div>
+      <div class="mrow"><span>4:30</span><span>Independent play while you start dinner</span></div>
+      <div class="linkrow"><a href="#" onclick="rerollSophia();return false">↻ Different activities</a><a href="#" onclick="setTab('sophia');return false">Idea bank →</a></div>
+    </div>`;
+  }
+  return h;
+}
+function suppChecks(k, time){
+  const meta = dayMeta(k);
+  const list = state.supplements.filter(s=>s.time===time);
+  if(!list.length) return "";
+  return `<div class="subchecks">` + list.map(s=>{
+    const on = !!meta.checks["supp:"+s.id];
+    return `<button class="subcheck ${on?"on":""}" onclick="toggleCheck('supp:${s.id}')"><span class="box">✓</span><span>${esc(s.name)}${s.note?` <span class="tiny">· ${esc(s.note)}</span>`:""}</span></button>`;
+  }).join("") + `</div>`;
+}
+function toggleCheck(id){ const m=dayMeta(todayKey()); m.checks[id]=!m.checks[id]; commit(); }
+function togglePickup(){ const m=dayMeta(todayKey()); m.pickup=!m.pickup; commit(); }
+function rerollSophia(){ const m=dayMeta(todayKey()); m.roll=(m.roll||0)+1; commit(); }
+function quickAdd(){
+  const el=document.getElementById("quickadd");
+  if(!el.value.trim()) return;
+  state.dump.unshift({id:sid(),text:el.value.trim(),today:true,done:false,ts:Date.now()});
+  commit();
+}
+
+/* ---------- JOURNAL ---------- */
+const JFIELDS = [
+  ["affirmation","One affirmation","I am…  (present tense, like it's already true)"],
+  ["manifestation","One manifestation","What am I calling in? Write it like it's on its way."],
+  ["g1","Grateful for — 1","Something small counts."],
+  ["g2","Grateful for — 2",""],
+  ["g3","Grateful for — 3",""],
+  ["win","A win from yesterday","Anything. Surviving the day is a win."],
+  ["intention","How I want to go into today","One word or one sentence — calm? focused? playful?"]
+];
+function vJournal(){
+  const k = todayKey();
+  const j = state.journal[k] || (state.journal[k]={});
+  const yk = yesterdayKey();
+  const yj = state.journal[yk];
+  const streak = journalStreak();
+  let h = `<h1>Journal</h1>
+  <p class="sub">${fmtDateShort(k)}${streak>1?` · <b>${streak}-day streak</b> 🔥`:""}</p>`;
+  if(yj && yj.intention) h += `<div class="notice">Yesterday you wanted to be: <b>${esc(yj.intention)}</b></div>`;
+  h += `<div class="card">` + JFIELDS.map(([f,label,hint])=>`
+    <div class="field"><label for="jf-${f}">${label}</label>
+    <textarea id="jf-${f}" rows="${f.startsWith("g")?1:2}" placeholder="${esc(hint)}" onchange="saveJ('${f}',this)">${esc(j[f]||"")}</textarea></div>`).join("")
+  + `<div class="field"><label for="jf-notes">Anything else on your mind (optional brain-clear)</label>
+     <textarea id="jf-notes" rows="3" placeholder="Dump it here so it stops looping." onchange="saveJ('notes',this)">${esc(j.notes||"")}</textarea></div>
+  <p class="tiny">Saves automatically when you tap away from a box.</p></div>`;
+
+  h += `<h2>Listen while you write</h2><div class="card"><div class="linkrow">`
+    + state.links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("")
+    + `</div><p class="tiny">Edit these links in More → Meditation links.</p></div>`;
+
+  const keys = Object.keys(state.journal).filter(x=>x!==k && hasContent(state.journal[x])).sort().reverse();
+  if(keys.length){
+    h += `<h2>Past entries</h2>`;
+    const show = ui.showAllHist ? keys : keys.slice(0,7);
+    h += show.map(x=>{
+      const e = state.journal[x];
+      return `<details><summary>${fmtDateShort(x)}</summary><div style="margin-top:8px">`
+        + JFIELDS.map(([f,label])=> e[f]?`<p><span class="tiny">${label}</span><br>${esc(e[f])}</p>`:"").join("")
+        + (e.notes?`<p><span class="tiny">Notes</span><br>${esc(e.notes)}</p>`:"")
+        + `</div></details>`;
+    }).join("");
+    if(keys.length>7 && !ui.showAllHist) h += `<button class="ghost" onclick="ui.showAllHist=true;render()">Show all ${keys.length} entries</button>`;
+  }
+  return h;
+}
+function hasContent(e){ return e && Object.values(e).some(v=>v && String(v).trim()); }
+function saveJ(f, el){ state.journal[todayKey()][f]=el.value; save(); if(f==="intention")render(); }
+function journalStreak(){
+  let n=0; const d=new Date();
+  if(!hasContent(state.journal[keyOf(d)])) d.setDate(d.getDate()-1);
+  while(hasContent(state.journal[keyOf(d)])){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- GYM ---------- */
+function vGym(){
+  let h = `<h1>Gym</h1><p class="sub">Log it once, then watch the numbers climb.</p>`;
+  h += state.draft ? draftForm() :
+    `<div class="card row"><div class="grow"><b>Ready to lift?</b><div class="tiny">Starts a log for today.</div></div>
+     <button class="primary" onclick="newWorkout()" style="flex:none">Start workout</button></div>`;
+
+  // progress
+  const names = [...new Set(state.workouts.flatMap(w=>w.exercises.map(e=>e.name)))].sort();
+  if(names.length){
+    h += `<h2>Progress</h2><div class="card">
+      <select onchange="ui.progressEx=this.value;render()">
+        <option value="">Pick an exercise…</option>
+        ${names.map(n=>`<option ${ui.progressEx===n?"selected":""}>${esc(n)}</option>`).join("")}
+      </select>`;
+    if(ui.progressEx){
+      const rows = state.workouts
+        .map(w=>({date:w.date, ex:w.exercises.find(e=>e.name===ui.progressEx)}))
+        .filter(r=>r.ex && r.ex.sets.length)
+        .sort((a,b)=>a.date.localeCompare(b.date));
+      if(rows.length){
+        const tops = rows.map(r=>Math.max(...r.ex.sets.map(s=>+s.w||0)));
+        h += spark(tops) + `<div class="scrollx"><table class="stats"><tr><th>Date</th><th>Sets</th><th>Top weight</th></tr>`
+          + rows.slice(-10).reverse().map((r,i,arr)=>{
+            const top = Math.max(...r.ex.sets.map(s=>+s.w||0));
+            return `<tr><td>${fmtDateShort(r.date)}</td><td>${r.ex.sets.map(s=>`${s.w}×${s.r}`).join(", ")}</td><td><b>${top}</b></td></tr>`;
+          }).join("") + `</table></div>`;
+        const first = tops[0], last = tops[tops.length-1];
+        if(rows.length>1) h += `<p class="tiny">${last>first?`Up ${last-first} since ${fmtDateShort(rows[0].date)} — that's progress. 📈`:last<first?`A bit below your best — bodies have seasons.`:`Holding steady.`}</p>`;
+      }
+    }
+    h += `</div>`;
+  }
+
+  // history
+  if(state.workouts.length){
+    h += `<h2>History</h2>` + state.workouts.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10).map(w=>
+      `<details><summary>${fmtDateShort(w.date)} · ${w.exercises.length} exercise${w.exercises.length===1?"":"s"}</summary>
+       <div style="margin-top:8px">${w.exercises.map(e=>`<p><span class="exname">${esc(e.name)}</span><br><span class="tiny">${e.sets.map(s=>`${s.w}×${s.r}`).join("  ·  ")}</span></p>`).join("")}
+       <button class="small danger" onclick="delWorkout('${w.id}')">Delete</button></div></details>`).join("");
+  }
+
+  // symptoms
+  h += `<h2>How's the body?</h2><div class="card">
+    <div class="field"><label>Soreness / pain today (0 = great, 5 = ouch)</label>
+      <div class="sore">${[0,1,2,3,4,5].map(n=>`<button class="${ui.sore===n?"on":""}" onclick="ui.sore=${n};render()">${n}</button>`).join("")}</div></div>
+    <div class="field"><label for="symnote">What hurts / how do you feel?</label>
+      <input id="symnote" placeholder="e.g. right shoulder pinchy on overhead press"></div>
+    <button class="primary" onclick="addSymptom()">Log it</button>
+  </div>`;
+  const syms = state.symptoms.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  if(syms.length){
+    h += `<div class="card">` + syms.map(s=>`<div class="listitem">
+      <span class="pill" style="background:var(--accent-soft);color:${s.soreness>=4?"var(--bad)":s.soreness>=2?"var(--warn)":"var(--good)"}">${s.soreness}</span>
+      <div class="grow">${esc(s.note)||"<span class='tiny'>no note</span>"}<div class="tiny">${fmtDateShort(s.date)}</div></div>
+      <button class="small ghost" onclick="delSymptom('${s.id}')">✕</button></div>`).join("") + `</div>`;
+  }
+  return h;
+}
+function spark(vals){
+  if(vals.length<2) return "";
+  const w=280,hh=48,max=Math.max(...vals),min=Math.min(...vals),range=(max-min)||1;
+  const pts = vals.map((v,i)=>`${(i/(vals.length-1)*(w-12)+6).toFixed(1)},${(hh-8-((v-min)/range)*(hh-16)).toFixed(1)}`);
+  const last = pts[pts.length-1].split(",");
+  return `<svg viewBox="0 0 ${w} ${hh}" width="100%" height="${hh}" style="margin:10px 0" aria-hidden="true">
+    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="var(--accent)"/></svg>`;
+}
+function lastSetsFor(name){
+  const ws = state.workouts.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  for(const w of ws){ const e=w.exercises.find(e=>e.name.toLowerCase()===name.toLowerCase()); if(e&&e.sets.length) return {date:w.date,sets:e.sets}; }
+  return null;
+}
+function draftForm(){
+  const d = state.draft;
+  const names = [...new Set(state.workouts.flatMap(w=>w.exercises.map(e=>e.name)))];
+  let h = `<div class="card"><div class="spread"><h3>Today's workout</h3><span class="tiny">${fmtDateShort(d.date)}</span></div>
+  <datalist id="exnames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>`;
+  d.exercises.forEach((e,i)=>{
+    const last = e.name ? lastSetsFor(e.name) : null;
+    h += `<hr class="divider" style="margin:12px 0">
+    <div class="row"><input list="exnames" placeholder="Exercise (e.g. Goblet squat)" value="${esc(e.name)}" onchange="state.draft.exercises[${i}].name=this.value;commit()">
+      <button class="small ghost" onclick="state.draft.exercises.splice(${i},1);commit()" aria-label="Remove exercise">✕</button></div>
+    ${last?`<p class="tiny" style="margin:6px 0 2px">Last time (${fmtDateShort(last.date)}): ${last.sets.map(s=>`${s.w}×${s.r}`).join(", ")}
+      <a href="#" onclick="copyLast(${i});return false">copy</a></p>`:""}
+    <div class="row wrapover" style="margin-top:6px">${e.sets.map((s,j)=>
+      `<span class="setchip">${s.w}×${s.r}<button onclick="state.draft.exercises[${i}].sets.splice(${j},1);commit()" aria-label="Remove set">✕</button></span>`).join("")}</div>
+    <div class="row" style="margin-top:8px">
+      <input id="w-${i}" type="number" inputmode="decimal" placeholder="Weight" style="width:90px">
+      <input id="r-${i}" type="number" inputmode="numeric" placeholder="Reps" style="width:80px">
+      <button class="small" onclick="addSet(${i})">+ Set</button>
+    </div>`;
+  });
+  h += `<div class="row" style="margin-top:14px">
+    <button onclick="state.draft.exercises.push({name:'',sets:[]});commit()">+ Exercise</button>
+    <button class="primary" onclick="saveWorkout()" style="flex:1">Finish workout</button>
+    <button class="ghost small" onclick="if(confirm('Discard this workout?')){state.draft=null;commit()}">Discard</button>
+  </div></div>`;
+  return h;
+}
+function newWorkout(){ state.draft={id:sid(),date:todayKey(),exercises:[{name:"",sets:[]}]}; commit(); }
+function addSet(i){
+  const w=document.getElementById("w-"+i).value, r=document.getElementById("r-"+i).value;
+  if(!w&&!r) return;
+  state.draft.exercises[i].sets.push({w:+w||0,r:+r||0}); commit();
+}
+function copyLast(i){
+  const last = lastSetsFor(state.draft.exercises[i].name);
+  if(last) state.draft.exercises[i].sets = last.sets.map(s=>({w:s.w,r:s.r}));
+  commit();
+}
+function saveWorkout(){
+  const d = state.draft;
+  d.exercises = d.exercises.filter(e=>e.name.trim() && e.sets.length);
+  if(!d.exercises.length){ alert("Add at least one exercise with a set first."); return; }
+  state.workouts.push(d); state.draft=null;
+  const m=dayMeta(todayKey()); m.checks["strength"]=true;
+  commit();
+}
+function delWorkout(id){ if(confirm("Delete this workout?")){ state.workouts=state.workouts.filter(w=>w.id!==id); commit(); } }
+function addSymptom(){
+  const note=document.getElementById("symnote").value.trim();
+  state.symptoms.push({id:sid(),date:todayKey(),soreness:ui.sore,note}); ui.sore=0; commit();
+}
+function delSymptom(id){ state.symptoms=state.symptoms.filter(s=>s.id!==id); commit(); }
+
+/* ---------- SOPHIA ---------- */
+function vSophia(){
+  const picks = sophiaPicks(todayKey());
+  let h = `<h1>Sophia</h1><p class="sub">The afternoon runs itself when the ideas are ready in advance.</p>
+  <div class="card"><h3>Today's picks</h3>
+    ${picks.map(p=>`<div class="listitem"><span class="catdot" style="background:var(--c-sophia)"></span><div class="grow">${esc(p.title)}<div class="tiny">${esc(p.tag)}</div></div></div>`).join("")}
+    <button class="small" style="margin-top:8px" onclick="rerollSophia()">↻ Shuffle</button>
+  </div>
+  <h2>Idea bank</h2><p class="tiny">These feed the 2:30 and 3:30 slots on the Today screen. Add your own — she'll never run out.</p>
+  <div class="card">`
+  + state.activities.map(a=>`<div class="listitem"><div class="grow">${esc(a.title)}</div><span class="pill" style="background:var(--accent-soft);color:var(--accent)">${esc(a.tag)}</span>
+      <button class="small ghost" onclick="delActivity('${a.id}')" aria-label="Delete">✕</button></div>`).join("")
+  + `</div>
+  <div class="card"><h3>Add an idea</h3>
+    <div class="field"><input id="act-title" placeholder="Activity (e.g. Build a blanket fort)"></div>
+    <div class="row"><select id="act-tag" style="flex:1">
+      ${["Fine motor","Gross motor","Language","Sensory","Creative","Cognitive","Imaginative","Practical life"].map(t=>`<option>${t}</option>`).join("")}
+    </select><button class="primary" onclick="addActivity()">Add</button></div>
+  </div>`;
+  return h;
+}
+function addActivity(){
+  const t=document.getElementById("act-title").value.trim();
+  if(!t) return;
+  state.activities.push({id:sid(),title:t,tag:document.getElementById("act-tag").value}); commit();
+}
+function delActivity(id){ state.activities=state.activities.filter(a=>a.id!==id); commit(); }
+
+/* ---------- MORE ---------- */
+function vMore(){
+  let h = `<h1>More</h1><p class="sub">Your brain dump, plus every knob and dial. Change anything — the app follows you, not the other way around.</p>`;
+
+  // brain dump
+  h += `<h2>Brain dump</h2><p class="tiny">Anything circling in your head goes here so it can stop circling. Tap ☀ to put it on today's list.</p>
+  <div class="card"><div class="row" style="margin-bottom:8px">
+    <input id="dump-in" placeholder="Get it out of your head…" onkeydown="if(event.key==='Enter')addDump()">
+    <button class="primary" onclick="addDump()" style="flex:none">Add</button></div>`
+  + state.dump.slice(0,50).map(d=>`<div class="listitem">
+      <button class="subcheck ${d.done?"on":""}" style="flex:none" onclick="toggleDump('${d.id}')" aria-label="Toggle done"><span class="box">✓</span></button>
+      <div class="grow ${d.done?"faded":""}">${esc(d.text)}</div>
+      <button class="small ${d.today?"primary":"ghost"}" onclick="dumpToday('${d.id}')" title="Put on today's list">☀</button>
+      <button class="small ghost" onclick="delDump('${d.id}')" aria-label="Delete">✕</button></div>`).join("")
+  + `</div>`;
+
+  // supplements
+  h += `<h2>Supplements</h2><div class="card">`
+  + state.supplements.map(s=>`<div class="listitem">
+      <input value="${esc(s.name)}" onchange="updSupp('${s.id}','name',this)" style="flex:2">
+      <select onchange="updSupp('${s.id}','time',this)" style="flex:none;width:78px">${["AM","PM"].map(t=>`<option ${s.time===t?"selected":""}>${t}</option>`).join("")}</select>
+      <input value="${esc(s.note)}" placeholder="note" onchange="updSupp('${s.id}','note',this)" style="flex:2">
+      <button class="small ghost" onclick="delSupp('${s.id}')" aria-label="Delete">✕</button></div>`).join("")
+  + `<button class="small" style="margin-top:8px" onclick="state.supplements.push({id:sid(),name:'New supplement',time:'AM',note:''});commit()">+ Add supplement</button>
+  <p class="tiny">AM ones show at 8:40, PM ones with evening skincare.</p></div>`;
+
+  // links
+  h += `<h2>Meditation & affirmation links</h2><div class="card">`
+  + state.links.map(l=>`<div class="listitem">
+      <input value="${esc(l.label)}" onchange="updLink('${l.id}','label',this)" style="flex:1">
+      <input value="${esc(l.url)}" onchange="updLink('${l.id}','url',this)" style="flex:2">
+      <button class="small ghost" onclick="delLink('${l.id}')" aria-label="Delete">✕</button></div>`).join("")
+  + `<button class="small" style="margin-top:8px" onclick="state.links.push({id:sid(),label:'New link',url:'https://'});commit()">+ Add link</button>
+  <p class="tiny">Paste any Insight Timer, YouTube or Spotify link. They show in the 9:05 block and the Journal tab.</p></div>`;
+
+  // skincare
+  h += `<h2>Skincare steps</h2><div class="card">
+    <div class="field"><label for="sk-am">Morning (one step per line)</label>
+      <textarea id="sk-am" rows="4" onchange="saveSkin('skincareAM',this)">${esc(state.settings.skincareAM.join("\n"))}</textarea></div>
+    <div class="field"><label for="sk-pm">Evening (one step per line)</label>
+      <textarea id="sk-pm" rows="4" onchange="saveSkin('skincarePM',this)">${esc(state.settings.skincarePM.join("\n"))}</textarea></div>
+  </div>`;
+
+  // rotations
+  h += `<h2>Rotations</h2><p class="tiny">What the rotating blocks say on each weekday. Blank = "your choice".</p>`;
+  h += rotEditor("hustle","Side-hustle hour (1:00 pm, Tue & Thu)",[2,4]);
+  h += rotEditor("bonus","Bonus block (no-pickup days, ~12:00)",[1,2,3,4,5]);
+  h += rotEditor("evening","Evening block (8:30 pm)",[0,1,2,3,4,5,6]);
+
+  // blocks editor
+  h += `<h2>Your day, block by block</h2><p class="tiny">Edit times and titles, add new blocks, or delete what doesn't fit. "Pickup" controls which version of the day a block appears on.</p>`;
+  h += state.blocks.slice().sort((a,b)=>a.start.localeCompare(b.start)).map(b=>{
+    if(ui.editBlock===b.id) return blockEditor(b);
+    const cat = CATS[b.cat]||CATS.self;
+    return `<div class="listitem"><span class="catdot" style="background:var(${cat.v})"></span>
+      <div class="grow"><b>${fmtTime(b.start)}</b> ${esc(b.title)}
+        <div class="tiny">${(b.days||[]).map(d=>DAYS[d]).join(" ")}${b.pickup!=="any"?` · ${b.pickup==="only"?"pickup days only":"no-pickup days only"}`:""}</div></div>
+      <button class="small" onclick="ui.editBlock='${b.id}';render()">Edit</button></div>`;
+  }).join("");
+  h += `<button style="margin-top:8px" onclick="addBlock()">+ Add a block</button>`;
+
+  // data
+  h += `<h2>Your data</h2><div class="card">
+    <p class="tiny">Everything is stored privately in this browser. Export a backup now and then, or to move to a new phone.</p>
+    <div class="row wrapover">
+      <button onclick="exportData()">Export backup</button>
+      <label style="margin:0"><input type="file" accept=".json" style="display:none" onchange="importData(this)"><span class="chip" style="cursor:pointer">Import backup</span></label>
+      <button class="danger" onclick="resetData()">Reset everything</button>
+    </div>
+    <p class="tiny" style="margin-top:10px">Tip: on your phone, use your browser's <b>Add to Home Screen</b> so Clearday opens like an app.</p>
+  </div>`;
+  return h;
+}
+function rotEditor(kind, title, days){
+  return `<details><summary>${title}</summary><div style="margin-top:8px">`
+  + days.map(d=>`<div class="field"><label>${DAYS[d]}</label>
+      <input value="${esc((state.rotations[kind]||{})[d]||"")}" onchange="updRot('${kind}',${d},this)"></div>`).join("")
+  + `</div></details>`;
+}
+function updRot(kind,d,el){ if(!state.rotations[kind])state.rotations[kind]={}; state.rotations[kind][d]=el.value; save(); }
+function blockEditor(b){
+  return `<div class="card" style="border-color:var(--accent)">
+    <div class="field"><label>Title</label><input id="be-title" value="${esc(b.title)}"></div>
+    <div class="row"><div class="field" style="flex:1"><label>Start</label><input id="be-start" type="time" value="${b.start}"></div>
+      <div class="field" style="flex:1"><label>End (optional)</label><input id="be-end" type="time" value="${b.end||""}"></div></div>
+    <div class="field"><label>Note</label><textarea id="be-note" rows="2">${esc(b.note||"")}</textarea></div>
+    <div class="row"><div class="field" style="flex:1"><label>Category</label><select id="be-cat">
+      ${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${b.cat===k?"selected":""}>${c.label}</option>`).join("")}</select></div>
+    <div class="field" style="flex:1"><label>Pickup days?</label><select id="be-pickup">
+      <option value="any" ${b.pickup==="any"?"selected":""}>Every day it runs</option>
+      <option value="only" ${b.pickup==="only"?"selected":""}>Pickup days only</option>
+      <option value="not" ${b.pickup==="not"?"selected":""}>No-pickup days only</option></select></div></div>
+    <div class="field"><label>Days</label><div class="dayselect" id="be-days">
+      ${ALLDAYS.map(d=>`<button class="${(b.days||[]).includes(d)?"on":""}" data-d="${d}" onclick="this.classList.toggle('on')">${DAYS[d]}</button>`).join("")}</div></div>
+    <div class="row">
+      <button class="primary" onclick="saveBlock('${b.id}')">Save</button>
+      <button class="ghost" onclick="ui.editBlock=null;render()">Cancel</button>
+      <button class="danger small" style="margin-left:auto" onclick="delBlock('${b.id}')">Delete block</button>
+    </div></div>`;
+}
+function saveBlock(id){
+  const b = state.blocks.find(x=>x.id===id); if(!b) return;
+  b.title=document.getElementById("be-title").value.trim()||b.title;
+  b.start=document.getElementById("be-start").value||b.start;
+  b.end=document.getElementById("be-end").value||"";
+  b.note=document.getElementById("be-note").value;
+  b.cat=document.getElementById("be-cat").value;
+  b.pickup=document.getElementById("be-pickup").value;
+  b.days=[...document.querySelectorAll("#be-days button.on")].map(x=>+x.dataset.d);
+  ui.editBlock=null; commit();
+}
+function delBlock(id){ if(confirm("Delete this block from your day?")){ state.blocks=state.blocks.filter(b=>b.id!==id); ui.editBlock=null; commit(); } }
+function addBlock(){
+  const b={id:sid(),days:[...WEEKDAYS],pickup:"any",start:"12:00",end:"",title:"New block",note:"",cat:"self",type:"simple"};
+  state.blocks.push(b); ui.editBlock=b.id; commit();
+}
+function updSupp(id,f,el){ const s=state.supplements.find(x=>x.id===id); if(s){s[f]=el.value; save();} }
+function delSupp(id){ state.supplements=state.supplements.filter(s=>s.id!==id); commit(); }
+function updLink(id,f,el){ const l=state.links.find(x=>x.id===id); if(l){l[f]=el.value; save();} }
+function delLink(id){ state.links=state.links.filter(l=>l.id!==id); commit(); }
+function saveSkin(k,el){ state.settings[k]=el.value.split("\n").map(s=>s.trim()).filter(Boolean); save(); }
+function addDump(){
+  const el=document.getElementById("dump-in");
+  if(!el.value.trim()) return;
+  state.dump.unshift({id:sid(),text:el.value.trim(),today:false,done:false,ts:Date.now()});
+  commit();
+}
+function toggleDump(id){ const d=state.dump.find(x=>x.id===id); if(d){d.done=!d.done; commit();} }
+function dumpToday(id){ const d=state.dump.find(x=>x.id===id); if(d){d.today=!d.today; commit();} }
+function delDump(id){ state.dump=state.dump.filter(x=>x.id!==id); commit(); }
+
+/* ---------- data ---------- */
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "clearday-backup-"+todayKey()+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(el){
+  const f = el.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ state = JSON.parse(r.result); commit(); alert("Backup restored."); }catch(e){ alert("That file doesn't look like a Clearday backup."); } };
+  r.readAsText(f);
+}
+function resetData(){
+  if(confirm("Really erase everything and start fresh? Export a backup first if unsure.")){
+    localStorage.removeItem(KEY); load(); render();
+  }
+}
+
+load();
+render();
+</script>
+</body>
+</html>
