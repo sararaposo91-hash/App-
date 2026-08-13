@@ -147,6 +147,9 @@ summary{cursor:pointer;font-weight:600}
 .dayselect{display:flex;gap:4px;flex-wrap:wrap}
 .dayselect button{width:36px;padding:6px 0;font-size:.8rem}
 .dayselect button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dayselect.mini{gap:3px;margin-top:2px}
+.dayselect.mini button{width:28px;padding:3px 0;font-size:.72rem;border-radius:7px;color:var(--muted)}
+.dayselect.mini button.on{color:var(--accent-ink)}
 .listitem{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .listitem:last-child{border-bottom:none}
 .listitem .grow{flex:1;min-width:0}
@@ -173,11 +176,18 @@ const CATS = {
 };
 
 function defaults(){
+  const skinAM = ["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"];
+  const skinPM = ["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"];
   return {
+    rev:2,
     settings:{
       name:"Sara",
-      skincareAM:["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"],
-      skincarePM:["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"]
+      skincareAM:skinAM,
+      skincarePM:skinPM
+    },
+    skincare:{
+      AM: skinAM.map(t=>({id:sid(),text:t,days:[...ALLDAYS]})),
+      PM: skinPM.map(t=>({id:sid(),text:t,days:[...ALLDAYS]}))
     },
     blocks:[
       {id:"supps-am",days:WEEKDAYS,pickup:"any",start:"08:40",end:"",title:"Water + morning supplements",note:"",cat:"self",type:"supps-am"},
@@ -219,10 +229,11 @@ function defaults(){
                6:"Whatever feels good — no assignment tonight"}
     },
     supplements:[
-      {id:sid(),name:"Multivitamin",time:"AM",note:"with breakfast"},
-      {id:sid(),name:"Vitamin D",time:"AM",note:""},
-      {id:sid(),name:"Omega-3",time:"AM",note:"with food"},
-      {id:sid(),name:"Magnesium",time:"PM",note:"30 min before bed"}
+      {id:sid(),name:"Multivitamin",time:"AM",note:"with breakfast",days:[...ALLDAYS]},
+      {id:sid(),name:"Vitamin D",time:"AM",note:"",days:[...ALLDAYS]},
+      {id:sid(),name:"Omega-3",time:"AM",note:"with food",days:[...ALLDAYS]},
+      {id:sid(),name:"Pre-workout",time:"AM",note:"gym days",days:[1,3,5]},
+      {id:sid(),name:"Magnesium",time:"PM",note:"30 min before bed",days:[...ALLDAYS]}
     ],
     links:[
       {id:sid(),label:"Insight Timer",url:"https://insighttimer.com/"},
@@ -270,6 +281,17 @@ function load(){
     const raw = localStorage.getItem(KEY);
     if(!raw){ state = d; return; }
     const s = JSON.parse(raw);
+    // migrations for data saved by older versions
+    if(!s.skincare && s.settings){
+      const mk = a => (a||[]).map(t=>({id:sid(),text:t,days:[...ALLDAYS]}));
+      s.skincare = {AM:mk(s.settings.skincareAM||d.settings.skincareAM), PM:mk(s.settings.skincarePM||d.settings.skincarePM)};
+    }
+    if((s.rev||0) < 2){
+      for(const sup of (s.supplements||[])) if(!sup.days) sup.days = [...ALLDAYS];
+      if(s.supplements && !s.supplements.some(x=>/pre.?workout/i.test(x.name)))
+        s.supplements.push({id:sid(),name:"Pre-workout",time:"AM",note:"gym days",days:[1,3,5]});
+      s.rev = 2;
+    }
     for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
     for(const k of Object.keys(d.settings)) if(!s.settings[k]) s.settings[k] = d.settings[k];
     const dinner = (s.blocks||[]).find(b=>b.id==="dinner");
@@ -444,10 +466,11 @@ function blockBody(b, k, wd){
   let h = note ? `<div class="note">${esc(note)}</div>` : "";
 
   if(b.type==="skincare-am" || b.type==="skincare-pm"){
-    const steps = b.type==="skincare-am" ? state.settings.skincareAM : state.settings.skincarePM;
-    h += `<div class="subchecks">` + steps.map((s,i)=>{
-      const on = !!meta.checks[b.id+":"+i];
-      return `<button class="subcheck ${on?"on":""}" onclick="toggleCheck('${b.id}:${i}')"><span class="box">✓</span><span>${esc(s)}</span></button>`;
+    const steps = (b.type==="skincare-am" ? state.skincare.AM : state.skincare.PM)
+      .filter(s=>!s.days || s.days.includes(wd));
+    h += `<div class="subchecks">` + steps.map(s=>{
+      const on = !!meta.checks[b.id+":"+s.id];
+      return `<button class="subcheck ${on?"on":""}" onclick="toggleCheck('${b.id}:${s.id}')"><span class="box">✓</span><span>${esc(s.text)}</span></button>`;
     }).join("") + `</div>`;
     if(b.type==="skincare-pm") h += suppChecks(k,"PM");
   }
@@ -489,7 +512,9 @@ function blockBody(b, k, wd){
 }
 function suppChecks(k, time){
   const meta = dayMeta(k);
-  const list = state.supplements.filter(s=>s.time===time);
+  const [y,m,d] = k.split("-").map(Number);
+  const wd = new Date(y,m-1,d).getDay();
+  const list = state.supplements.filter(s=>s.time===time && (!s.days || s.days.includes(wd)));
   if(!list.length) return "";
   return `<div class="subchecks">` + list.map(s=>{
     const on = !!meta.checks["supp:"+s.id];
@@ -863,13 +888,14 @@ function vMore(){
 
   // supplements
   h += `<h2>Supplements</h2><div class="card">`
-  + state.supplements.map(s=>`<div class="listitem">
-      <input value="${esc(s.name)}" onchange="updSupp('${s.id}','name',this)" style="flex:2">
+  + state.supplements.map(s=>`<div class="listitem" style="flex-wrap:wrap">
+      <input value="${esc(s.name)}" onchange="updSupp('${s.id}','name',this)" style="flex:2;min-width:120px">
       <select onchange="updSupp('${s.id}','time',this)" style="flex:none;width:78px">${["AM","PM"].map(t=>`<option ${s.time===t?"selected":""}>${t}</option>`).join("")}</select>
-      <input value="${esc(s.note)}" placeholder="note" onchange="updSupp('${s.id}','note',this)" style="flex:2">
-      <button class="small ghost" onclick="delSupp('${s.id}')" aria-label="Delete">✕</button></div>`).join("")
-  + `<button class="small" style="margin-top:8px" onclick="state.supplements.push({id:sid(),name:'New supplement',time:'AM',note:''});commit()">+ Add supplement</button>
-  <p class="tiny">AM ones show at 8:40, PM ones with evening skincare.</p></div>`;
+      <input value="${esc(s.note)}" placeholder="note" onchange="updSupp('${s.id}','note',this)" style="flex:2;min-width:100px">
+      <button class="small ghost" onclick="delSupp('${s.id}')" aria-label="Delete">✕</button>
+      ${dayToggles("suppDay","'"+s.id+"'",s.days)}</div>`).join("")
+  + `<button class="small" style="margin-top:8px" onclick="state.supplements.push({id:sid(),name:'New supplement',time:'AM',note:'',days:[...ALLDAYS]});commit()">+ Add supplement</button>
+  <p class="tiny">AM ones show at 8:40, PM ones with evening skincare. Tap the day letters so an item only appears on those days — e.g. Pre-workout on M·W·F gym days.</p></div>`;
 
   // links
   h += `<h2>Meditation & affirmation links</h2><div class="card">`
@@ -881,12 +907,15 @@ function vMore(){
   <p class="tiny">Paste any Insight Timer, YouTube or Spotify link. They show in the 9:05 block and the Journal tab.</p></div>`;
 
   // skincare
-  h += `<h2>Skincare steps</h2><div class="card">
-    <div class="field"><label for="sk-am">Morning (one step per line)</label>
-      <textarea id="sk-am" rows="4" onchange="saveSkin('skincareAM',this)">${esc(state.settings.skincareAM.join("\n"))}</textarea></div>
-    <div class="field"><label for="sk-pm">Evening (one step per line)</label>
-      <textarea id="sk-pm" rows="4" onchange="saveSkin('skincarePM',this)">${esc(state.settings.skincarePM.join("\n"))}</textarea></div>
-  </div>`;
+  h += `<h2>Skincare steps</h2><p class="tiny">Each product has its own days — so a retinol can be Mon·Wed·Fri nights while the rest stays daily.</p>`;
+  for(const part of ["AM","PM"]){
+    h += `<div class="card"><h3>${part==="AM"?"Morning":"Evening"}</h3>`
+    + state.skincare[part].map(s=>`<div class="listitem" style="flex-wrap:wrap">
+        <input value="${esc(s.text)}" onchange="updSkin('${part}','${s.id}',this)" style="flex:1;min-width:150px">
+        <button class="small ghost" onclick="delSkin('${part}','${s.id}')" aria-label="Delete">✕</button>
+        ${dayToggles("skinDay","'"+part+"','"+s.id+"'",s.days)}</div>`).join("")
+    + `<button class="small" style="margin-top:8px" onclick="state.skincare['${part}'].push({id:sid(),text:'New step',days:[...ALLDAYS]});commit()">+ Add step</button></div>`;
+  }
 
   // rotations
   h += `<h2>Rotations</h2><p class="tiny">What the rotating blocks say on each weekday. Blank = "your choice".</p>`;
@@ -961,11 +990,24 @@ function addBlock(){
   const b={id:sid(),days:[...WEEKDAYS],pickup:"any",start:"12:00",end:"",title:"New block",note:"",cat:"self",type:"simple"};
   state.blocks.push(b); ui.editBlock=b.id; commit();
 }
+function dayToggles(fn, argPrefix, days){
+  const on = days || ALLDAYS;
+  return `<div class="dayselect mini" style="width:100%">`
+    + ALLDAYS.map(d=>`<button class="${on.includes(d)?"on":""}" onclick="${fn}(${argPrefix},${d})" aria-label="${DAYS[d]}" title="${DAYS[d]}">${DAYS[d][0]}</button>`).join("")
+    + `</div>`;
+}
+function toggleDayIn(obj,d){
+  if(!obj.days) obj.days = [...ALLDAYS];
+  obj.days = obj.days.includes(d) ? obj.days.filter(x=>x!==d) : [...obj.days,d].sort();
+}
+function suppDay(id,d){ const s=state.supplements.find(x=>x.id===id); if(s){ toggleDayIn(s,d); commit(); } }
+function skinDay(part,id,d){ const s=state.skincare[part].find(x=>x.id===id); if(s){ toggleDayIn(s,d); commit(); } }
+function updSkin(part,id,el){ const s=state.skincare[part].find(x=>x.id===id); if(s){ s.text=el.value; save(); } }
+function delSkin(part,id){ state.skincare[part]=state.skincare[part].filter(x=>x.id!==id); commit(); }
 function updSupp(id,f,el){ const s=state.supplements.find(x=>x.id===id); if(s){s[f]=el.value; save();} }
 function delSupp(id){ state.supplements=state.supplements.filter(s=>s.id!==id); commit(); }
 function updLink(id,f,el){ const l=state.links.find(x=>x.id===id); if(l){l[f]=el.value; save();} }
 function delLink(id){ state.links=state.links.filter(l=>l.id!==id); commit(); }
-function saveSkin(k,el){ state.settings[k]=el.value.split("\n").map(s=>s.trim()).filter(Boolean); save(); }
 function addDump(){
   const el=document.getElementById("dump-in");
   if(!el.value.trim()) return;
