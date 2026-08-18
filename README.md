@@ -9,7 +9,7 @@ A personal daily operating system built for Sara — open it in the morning and 
 - **Gym** — log exercises as weight × reps sets, see what you lifted last time (one-tap copy), per-exercise progress table and trend line, and a post-workout symptom/soreness log.
 - **Meals** — a visual recipe box (cards with photos stored on-device), links out to recipe websites, a weekly dinner planner whose picks show automatically in the Today dinner block, and a prep & shopping checklist.
 - **Sophia** — an activity idea bank tagged by skill area (fine motor, gross motor, language, sensory, creative, cognitive, imaginative, practical life) that feeds the afternoon plan. Add your own ideas anytime.
-- **More** — brain dump (with "put on today's list"), plus editors for everything: schedule blocks and times, weekday rotations, supplements, skincare steps, and links. Export/import a JSON backup.
+- **More** — brain dump (with "put on today's list"), plus editors for everything: schedule blocks and times, weekday rotations, supplements, skincare steps, and links. Every block has a "What's inside" content type (meditation links, journal prompts, skincare steps, supplements, gym log, Sophia plan, dinner plan, rotating notes, or a plain check-off), and supplements, skincare steps, and links each carry their own days of the week — so any day can be built block by block, entirely different from the next. Export/import a JSON backup.
 
 ## How to use it
 

@@ -169,6 +169,21 @@ summary{cursor:pointer;font-weight:600}
 const KEY = "clearday-v1";
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const WEEKDAYS = [1,2,3,4,5], ALLDAYS = [0,1,2,3,4,5,6], WEEKEND = [0,6];
+const TYPES = {
+  "simple":"Just a check-off",
+  "links":"Meditation & affirmation links",
+  "journal":"Journal prompts",
+  "skincare-am":"Morning skincare steps",
+  "skincare-pm":"Evening skincare steps + PM supplements",
+  "supps-am":"Morning supplements",
+  "supps-pm":"Evening supplements",
+  "gym":"Gym log shortcut",
+  "dinner":"Dinner plan (from Meals)",
+  "sophia":"Sophia afternoon plan",
+  "rot-bonus":"Rotating note: bonus block",
+  "rot-hustle":"Rotating note: side hustle",
+  "rot-evening":"Rotating note: evening"
+};
 const CATS = {
   work:{label:"Work",v:"--c-work"}, sophia:{label:"Sophia",v:"--c-sophia"},
   self:{label:"You",v:"--c-self"}, home:{label:"Home",v:"--c-home"},
@@ -179,7 +194,7 @@ function defaults(){
   const skinAM = ["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"];
   const skinPM = ["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"];
   return {
-    rev:2,
+    rev:3,
     settings:{
       name:"Sara",
       skincareAM:skinAM,
@@ -236,9 +251,9 @@ function defaults(){
       {id:sid(),name:"Magnesium",time:"PM",note:"30 min before bed",days:[...ALLDAYS]}
     ],
     links:[
-      {id:sid(),label:"Insight Timer",url:"https://insighttimer.com/"},
-      {id:sid(),label:"10-min morning meditation (YouTube)",url:"https://www.youtube.com/results?search_query=10+minute+morning+meditation"},
-      {id:sid(),label:"Morning affirmations (YouTube)",url:"https://www.youtube.com/results?search_query=morning+affirmations+for+women"}
+      {id:sid(),label:"Insight Timer",url:"https://insighttimer.com/",days:[...ALLDAYS]},
+      {id:sid(),label:"10-min morning meditation (YouTube)",url:"https://www.youtube.com/results?search_query=10+minute+morning+meditation",days:[...ALLDAYS]},
+      {id:sid(),label:"Morning affirmations (YouTube)",url:"https://www.youtube.com/results?search_query=morning+affirmations+for+women",days:[...ALLDAYS]}
     ],
     activities:[
       {id:sid(),title:"Sensory bin (rice, scoops, cups)",tag:"Sensory"},
@@ -291,6 +306,10 @@ function load(){
       if(s.supplements && !s.supplements.some(x=>/pre.?workout/i.test(x.name)))
         s.supplements.push({id:sid(),name:"Pre-workout",time:"AM",note:"gym days",days:[1,3,5]});
       s.rev = 2;
+    }
+    if((s.rev||0) < 3){
+      for(const l of (s.links||[])) if(!l.days) l.days = [...ALLDAYS];
+      s.rev = 3;
     }
     for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
     for(const k of Object.keys(d.settings)) if(!s.settings[k]) s.settings[k] = d.settings[k];
@@ -475,13 +494,17 @@ function blockBody(b, k, wd){
     if(b.type==="skincare-pm") h += suppChecks(k,"PM");
   }
   if(b.type==="supps-am") h += suppChecks(k,"AM");
+  if(b.type==="supps-pm") h += suppChecks(k,"PM");
   if(b.type==="journal"){
     const j = state.journal[k]||{};
     const filled = ["affirmation","manifestation","g1","g2","g3","win","intention"].filter(f=>j[f]&&j[f].trim()).length;
     h += `<div class="linkrow"><a href="#" onclick="setTab('journal');return false">Open journal → ${filled?filled+"/7 done":"prompts ready"}</a></div>`;
   }
   if(b.type==="links"){
-    h += `<div class="linkrow">` + state.links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("") + `</div>`;
+    const ls = state.links.filter(l=>!l.days || l.days.includes(wd));
+    h += ls.length
+      ? `<div class="linkrow">` + ls.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("") + `</div>`
+      : `<div class="tiny">No links set for this day — add some in More → Meditation links.</div>`;
   }
   if(b.type==="gym"){
     h += `<div class="linkrow"><a href="#" onclick="setTab('gym');return false">Open gym log →</a></div>`;
@@ -557,8 +580,9 @@ function vJournal(){
      <textarea id="jf-notes" rows="3" placeholder="Dump it here so it stops looping." onchange="saveJ('notes',this)">${esc(j.notes||"")}</textarea></div>
   <p class="tiny">Saves automatically when you tap away from a box.</p></div>`;
 
+  const jwd = new Date().getDay();
   h += `<h2>Listen while you write</h2><div class="card"><div class="linkrow">`
-    + state.links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("")
+    + state.links.filter(l=>!l.days||l.days.includes(jwd)).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">▶ ${esc(l.label)}</a>`).join("")
     + `</div><p class="tiny">Edit these links in More → Meditation links.</p></div>`;
 
   const keys = Object.keys(state.journal).filter(x=>x!==k && hasContent(state.journal[x])).sort().reverse();
@@ -899,12 +923,13 @@ function vMore(){
 
   // links
   h += `<h2>Meditation & affirmation links</h2><div class="card">`
-  + state.links.map(l=>`<div class="listitem">
-      <input value="${esc(l.label)}" onchange="updLink('${l.id}','label',this)" style="flex:1">
-      <input value="${esc(l.url)}" onchange="updLink('${l.id}','url',this)" style="flex:2">
-      <button class="small ghost" onclick="delLink('${l.id}')" aria-label="Delete">✕</button></div>`).join("")
-  + `<button class="small" style="margin-top:8px" onclick="state.links.push({id:sid(),label:'New link',url:'https://'});commit()">+ Add link</button>
-  <p class="tiny">Paste any Insight Timer, YouTube or Spotify link. They show in the 9:05 block and the Journal tab.</p></div>`;
+  + state.links.map(l=>`<div class="listitem" style="flex-wrap:wrap">
+      <input value="${esc(l.label)}" onchange="updLink('${l.id}','label',this)" style="flex:1;min-width:120px">
+      <input value="${esc(l.url)}" onchange="updLink('${l.id}','url',this)" style="flex:2;min-width:140px">
+      <button class="small ghost" onclick="delLink('${l.id}')" aria-label="Delete">✕</button>
+      ${dayToggles("linkDay","'"+l.id+"'",l.days)}</div>`).join("")
+  + `<button class="small" style="margin-top:8px" onclick="state.links.push({id:sid(),label:'New link',url:'https://',days:[...ALLDAYS]});commit()">+ Add link</button>
+  <p class="tiny">Paste any Insight Timer, YouTube or Spotify link. Day letters control which days a link shows — so gym mornings can have different meditations. Links appear in any block whose content is "Meditation & affirmation links", and in the Journal tab.</p></div>`;
 
   // skincare
   h += `<h2>Skincare steps</h2><p class="tiny">Each product has its own days — so a retinol can be Mon·Wed·Fri nights while the rest stays daily.</p>`;
@@ -924,13 +949,13 @@ function vMore(){
   h += rotEditor("evening","Evening block (8:30 pm)",[0,1,2,3,4,5,6]);
 
   // blocks editor
-  h += `<h2>Your day, block by block</h2><p class="tiny">Edit times and titles, add new blocks, or delete what doesn't fit. "Pickup" controls which version of the day a block appears on.</p>`;
+  h += `<h2>Your day, block by block</h2><p class="tiny">Every block has a time, days of the week, and a "What's inside" — so Mon/Wed/Fri can look completely different from Tue/Thu or the weekend. Example: add a 5:00 am block on M·W·F with content "Meditation & affirmation links". "Pickup" controls which version of the day a block appears on.</p>`;
   h += state.blocks.slice().sort((a,b)=>a.start.localeCompare(b.start)).map(b=>{
     if(ui.editBlock===b.id) return blockEditor(b);
     const cat = CATS[b.cat]||CATS.self;
     return `<div class="listitem"><span class="catdot" style="background:var(${cat.v})"></span>
       <div class="grow"><b>${fmtTime(b.start)}</b> ${esc(b.title)}
-        <div class="tiny">${(b.days||[]).map(d=>DAYS[d]).join(" ")}${b.pickup!=="any"?` · ${b.pickup==="only"?"pickup days only":"no-pickup days only"}`:""}</div></div>
+        <div class="tiny">${(b.days||[]).map(d=>DAYS[d]).join(" ")}${b.pickup!=="any"?` · ${b.pickup==="only"?"pickup days only":"no-pickup days only"}`:""}${b.type&&b.type!=="simple"?` · ${TYPES[b.type]||b.type}`:""}</div></div>
       <button class="small" onclick="ui.editBlock='${b.id}';render()">Edit</button></div>`;
   }).join("");
   h += `<button style="margin-top:8px" onclick="addBlock()">+ Add a block</button>`;
@@ -960,6 +985,8 @@ function blockEditor(b){
     <div class="row"><div class="field" style="flex:1"><label>Start</label><input id="be-start" type="time" value="${b.start}"></div>
       <div class="field" style="flex:1"><label>End (optional)</label><input id="be-end" type="time" value="${b.end||""}"></div></div>
     <div class="field"><label>Note</label><textarea id="be-note" rows="2">${esc(b.note||"")}</textarea></div>
+    <div class="field"><label>What's inside</label><select id="be-type">
+      ${Object.entries(TYPES).map(([t,label])=>`<option value="${t}" ${(b.type||"simple")===t?"selected":""}>${label}</option>`).join("")}</select></div>
     <div class="row"><div class="field" style="flex:1"><label>Category</label><select id="be-cat">
       ${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${b.cat===k?"selected":""}>${c.label}</option>`).join("")}</select></div>
     <div class="field" style="flex:1"><label>Pickup days?</label><select id="be-pickup">
@@ -981,6 +1008,7 @@ function saveBlock(id){
   b.end=document.getElementById("be-end").value||"";
   b.note=document.getElementById("be-note").value;
   b.cat=document.getElementById("be-cat").value;
+  b.type=document.getElementById("be-type").value;
   b.pickup=document.getElementById("be-pickup").value;
   b.days=[...document.querySelectorAll("#be-days button.on")].map(x=>+x.dataset.d);
   ui.editBlock=null; commit();
@@ -1001,6 +1029,7 @@ function toggleDayIn(obj,d){
   obj.days = obj.days.includes(d) ? obj.days.filter(x=>x!==d) : [...obj.days,d].sort();
 }
 function suppDay(id,d){ const s=state.supplements.find(x=>x.id===id); if(s){ toggleDayIn(s,d); commit(); } }
+function linkDay(id,d){ const l=state.links.find(x=>x.id===id); if(l){ toggleDayIn(l,d); commit(); } }
 function skinDay(part,id,d){ const s=state.skincare[part].find(x=>x.id===id); if(s){ toggleDayIn(s,d); commit(); } }
 function updSkin(part,id,el){ const s=state.skincare[part].find(x=>x.id===id); if(s){ s.text=el.value; save(); } }
 function delSkin(part,id){ state.skincare[part]=state.skincare[part].filter(x=>x.id!==id); commit(); }
