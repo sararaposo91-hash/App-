@@ -135,10 +135,6 @@ table.stats th{color:var(--muted);font-size:.78rem;letter-spacing:.05em;text-tra
 .rbody .tiny{margin-top:auto}
 .thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none}
 .thumb.emj{display:inline-grid;place-items:center;font-size:1.6rem;background:linear-gradient(135deg,var(--accent-soft),var(--card2))}
-.weekrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.weekrow:last-child{border-bottom:none}
-.weekrow .dlabel{flex:none;width:44px;font-weight:600;font-size:.85rem;color:var(--muted)}
-.weekrow.today .dlabel{color:var(--accent)}
 .photobtn{position:relative;overflow:hidden}
 .photobtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .divider{border:none;border-top:1px solid var(--line);margin:18px 0}
@@ -178,7 +174,7 @@ const TYPES = {
   "supps-am":"Morning supplements",
   "supps-pm":"Evening supplements",
   "gym":"Gym log shortcut",
-  "dinner":"Dinner plan (from Meals)",
+  "meals":"Meal plan (from Meals)",
   "sophia":"Sophia afternoon plan",
   "rot-bonus":"Rotating note: bonus block",
   "rot-hustle":"Rotating note: side hustle",
@@ -194,7 +190,7 @@ function defaults(){
   const skinAM = ["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"];
   const skinPM = ["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"];
   return {
-    rev:3,
+    rev:4,
     settings:{
       name:"Sara",
       skincareAM:skinAM,
@@ -218,7 +214,7 @@ function defaults(){
       {id:"sidehustle",days:[2,4],pickup:"any",start:"13:00",end:"14:00",title:"Side-hustle hour",note:"",cat:"work",type:"rot-hustle"},
       {id:"core",days:WEEKDAYS,pickup:"any",start:"14:10",end:"14:20",title:"Core exercises + stretch",note:"10 minutes, every weekday. Non-negotiable but tiny.",cat:"health",type:"simple"},
       {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"14:30",end:"17:00",title:"Sophia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
-      {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:00",end:"18:00",title:"Dinner — Sophia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"dinner"},
+      {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:00",end:"18:00",title:"Dinner — Sophia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"meals",mealType:"Dinner"},
       {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sophia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
       {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + evening supplements",note:"",cat:"self",type:"skincare-pm"},
       {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"22:00",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
@@ -275,8 +271,8 @@ function defaults(){
       {id:sid(),title:"Letter or shape hunt with a flashlight",tag:"Language"},
       {id:sid(),title:"Nature walk — collect 5 treasures",tag:"Gross motor"}
     ],
-    recipes:[],     // {id,name,url,tag,img,notes}
-    mealPlan:{},    // weekday (0-6) -> recipe id
+    recipes:[],     // {id,name,url,tag,img,notes} — tag is the meal type (Breakfast/Lunch/Dinner/Snack/...)
+    mealPlan:{},    // weekday (0-6) -> { Breakfast|Lunch|Dinner|Snack: {family:recipeId, sophia:recipeId, same:bool} }
     prepList:[],    // {id,text,done}
     days:{},        // dateKey -> {pickup, checks:{}, roll:0}
     journal:{},     // dateKey -> {affirmation,manifestation,g1,g2,g3,win,intention,notes}
@@ -311,10 +307,25 @@ function load(){
       for(const l of (s.links||[])) if(!l.days) l.days = [...ALLDAYS];
       s.rev = 3;
     }
+    if((s.rev||0) < 4){
+      // old mealPlan: weekday -> recipeId (dinner only). New: weekday -> {mealType: {family,sophia,same}}
+      const oldPlan = s.mealPlan || {};
+      const newPlan = {};
+      for(const wd of Object.keys(oldPlan)){
+        const v = oldPlan[wd];
+        if(v && typeof v === "string") newPlan[wd] = {Dinner:{family:v, sophia:"", same:true}};
+      }
+      s.mealPlan = newPlan;
+      for(const b of (s.blocks||[])){
+        if(b.type==="dinner"){ b.type="meals"; b.mealType="Dinner"; }
+        if(b.type==="meals" && !b.mealType) b.mealType = "Dinner";
+      }
+      s.rev = 4;
+    }
     for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
     for(const k of Object.keys(d.settings)) if(!s.settings[k]) s.settings[k] = d.settings[k];
     const dinner = (s.blocks||[]).find(b=>b.id==="dinner");
-    if(dinner && dinner.type==="simple") dinner.type = "dinner";
+    if(dinner && dinner.type==="simple"){ dinner.type = "meals"; dinner.mealType = "Dinner"; }
     state = s;
   }catch(e){ state = d; }
 }
@@ -509,14 +520,25 @@ function blockBody(b, k, wd){
   if(b.type==="gym"){
     h += `<div class="linkrow"><a href="#" onclick="setTab('gym');return false">Open gym log →</a></div>`;
   }
-  if(b.type==="dinner"){
-    const r = state.recipes.find(x=>x.id===state.mealPlan[wd]);
-    if(r){
-      h += `<div class="mini"><div class="row">${r.img?`<img class="thumb" src="${r.img}" alt="">`:`<span class="thumb emj">${tagEmoji(r.tag)}</span>`}
-        <div class="grow"><b>${k===todayKey()?"Tonight":"Dinner plan"}: ${esc(r.name)}</b>${r.url?`<div class="linkrow" style="margin-top:4px"><a href="${esc(r.url)}" target="_blank" rel="noopener">Open recipe ↗</a></div>`:""}</div></div></div>`;
-    }else{
-      h += `<div class="linkrow"><a href="#" onclick="setTab('meals');return false">Nothing planned — open Meals →</a></div>`;
+  if(b.type==="meals"){
+    const types = (b.mealType && b.mealType!=="Any") ? [b.mealType] : MEALTYPES;
+    let inner = "";
+    for(const mt of types){
+      const slot = (state.mealPlan[wd]||{})[mt];
+      if(!slot || (!slot.family && !slot.sophia)) continue;
+      const prefix = types.length>1 ? mt+" — " : "";
+      const fam = state.recipes.find(x=>x.id===slot.family);
+      if(slot.same){
+        if(fam) inner += mealLine(prefix+"Everyone", fam);
+      }else{
+        const sop = state.recipes.find(x=>x.id===slot.sophia);
+        if(fam) inner += mealLine(prefix+"Us", fam);
+        if(sop) inner += mealLine(prefix+"Sophia", sop);
+      }
     }
+    h += inner
+      ? `<div class="mini">${inner}</div>`
+      : `<div class="linkrow"><a href="#" onclick="setTab('meals');return false">Nothing planned — open Meals →</a></div>`;
   }
   if(b.type==="sophia"){
     const picks = sophiaPicks(k);
@@ -736,32 +758,46 @@ function addSymptom(){
 function delSymptom(id){ state.symptoms=state.symptoms.filter(s=>s.id!==id); commit(); }
 
 /* ---------- MEALS ---------- */
-const MEALTAGS = ["Dinner","Lunch","Breakfast","Snack","Dessert","Prep-ahead"];
+const MEALTAGS = ["Breakfast","Lunch","Dinner","Snack","Dessert","Prep-ahead"];
+const MEALTYPES = ["Breakfast","Lunch","Dinner","Snack"];
+const FULLDAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 function tagEmoji(t){
   return {Dinner:"🍝",Lunch:"🥪",Breakfast:"🍳",Snack:"🍎",Dessert:"🍰","Prep-ahead":"🥡"}[t] || "🍽";
 }
+function mealLine(label, r){
+  return `<div class="row" style="margin:4px 0">${r.img?`<img class="thumb" src="${r.img}" alt="">`:`<span class="thumb emj">${tagEmoji(r.tag)}</span>`}
+    <div class="grow"><b>${esc(label)}:</b> ${esc(r.name)}${r.url?` <a href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:.85rem">↗</a>`:""}</div></div>`;
+}
+function recipeOptsFor(mt){
+  return state.recipes.slice().sort((a,b)=>(a.tag===mt?0:1)-(b.tag===mt?0:1) || a.name.localeCompare(b.name));
+}
 function vMeals(){
   const wd = new Date().getDay();
-  let h = `<h1>Meals</h1><p class="sub">Decide once on Sunday, then never think "what's for dinner" again.</p>`;
+  let h = `<h1>Meals</h1><p class="sub">Set family and Sophia's meals separately — she doesn't always eat what you eat.</p>`;
 
-  // week plan
-  h += `<h2>This week's dinners</h2><div class="card">`;
-  for(const d of [1,2,3,4,5,6,0]){
-    const r = state.recipes.find(x=>x.id===state.mealPlan[d]);
-    h += `<div class="weekrow ${d===wd?"today":""}"><span class="dlabel">${DAYS[d]}${d===wd?" ●":""}</span>`;
-    if(r){
-      h += `${r.img?`<img class="thumb" src="${r.img}" alt="">`:`<span class="thumb emj">${tagEmoji(r.tag)}</span>`}
-        <div class="grow">${esc(r.name)}${r.url?` <a href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:.85rem">↗</a>`:""}</div>
-        <button class="small ghost" onclick="delete state.mealPlan[${d}];commit()" aria-label="Clear ${DAYS[d]}">✕</button>`;
-    }else{
-      h += `<select class="grow" onchange="if(this.value)state.mealPlan[${d}]=this.value;commit()">
-        <option value="">Pick a meal…</option>
-        ${state.recipes.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}
-      </select>`;
-    }
-    h += `</div>`;
+  // weekly plan
+  h += `<h2>Weekly meal plan</h2>`;
+  if(!state.recipes.length){
+    h += `<div class="notice">Add a few meals in the recipe box below first, then come back here to schedule them.</div>`;
   }
-  h += `<p class="tiny">Tonight's pick shows automatically in the 5:00 dinner block on Today.${state.recipes.length?"":" Add some meals below first."}</p></div>`;
+  for(const d of [1,2,3,4,5,6,0]){
+    const daySlots = state.mealPlan[d] || {};
+    h += `<details${d===wd?" open":""}><summary>${FULLDAY[d]}${d===wd?" · today":""}</summary><div style="margin-top:10px">`;
+    for(const mt of MEALTYPES){
+      const slot = daySlots[mt] || {family:"",sophia:"",same:true};
+      const opts = recipeOptsFor(mt);
+      h += `<div style="margin-bottom:14px">
+        <div class="row spread" style="margin-bottom:4px"><b class="tiny" style="text-transform:uppercase;letter-spacing:.05em">${mt}</b>
+          <button class="chip ${slot.same?"on":""}" onclick="toggleMealSame(${d},'${mt}')">${slot.same?"✓ Sophia eats the same":"Different for Sophia"}</button></div>
+        <select onchange="setMealSlot(${d},'${mt}','family',this.value)"><option value="">${slot.same?"— pick a meal —":"— family meal —"}</option>
+          ${opts.map(r=>`<option value="${r.id}" ${slot.family===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>
+        ${slot.same?"":`<select style="margin-top:6px" onchange="setMealSlot(${d},'${mt}','sophia',this.value)"><option value="">— Sophia's meal —</option>
+          ${opts.map(r=>`<option value="${r.id}" ${slot.sophia===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`}
+      </div>`;
+    }
+    h += `</div></details>`;
+  }
+  h += `<p class="tiny">These show automatically in any Today block set to "Meal plan" in More — pick which meal (breakfast, lunch, dinner or snack) each block shows.</p>`;
 
   // prep list
   h += `<h2>Prep & shopping list</h2><div class="card">
@@ -775,10 +811,13 @@ function vMeals(){
   + (state.prepList.some(p=>p.done)?`<button class="small" style="margin-top:8px" onclick="state.prepList=state.prepList.filter(p=>!p.done);commit()">Clear checked</button>`:"")
   + `</div>`;
 
-  // recipe box
+  // recipe box, grouped by meal type
   h += `<h2>Recipe box</h2>`;
-  if(state.recipes.length){
-    h += `<div class="rgrid" style="margin-bottom:12px">` + state.recipes.map(r=>{
+  if(!state.recipes.length) h += `<p class="tiny">No meals yet — add your first one below.</p>`;
+  for(const cat of MEALTAGS){
+    const list = state.recipes.filter(r=>r.tag===cat);
+    if(!list.length) continue;
+    h += `<h3 style="margin:14px 0 8px">${cat}</h3><div class="rgrid" style="margin-bottom:4px">` + list.map(r=>{
       if(ui.editRecipe===r.id) return recipeEditor(r);
       return `<div class="rcard">
         ${r.img?`<img class="rimg" src="${r.img}" alt="">`:`<div class="rimg emj">${tagEmoji(r.tag)}</div>`}
@@ -830,8 +869,26 @@ function addRecipe(){
 function delRecipe(id){
   if(!confirm("Delete this meal?")) return;
   state.recipes = state.recipes.filter(r=>r.id!==id);
-  for(const d of Object.keys(state.mealPlan)) if(state.mealPlan[d]===id) delete state.mealPlan[d];
+  for(const d of Object.keys(state.mealPlan)){
+    for(const mt of Object.keys(state.mealPlan[d]||{})){
+      const slot = state.mealPlan[d][mt];
+      if(slot.family===id) slot.family="";
+      if(slot.sophia===id) slot.sophia="";
+    }
+  }
   ui.editRecipe = null; commit();
+}
+function setMealSlot(d,mt,who,recipeId){
+  if(!state.mealPlan[d]) state.mealPlan[d] = {};
+  if(!state.mealPlan[d][mt]) state.mealPlan[d][mt] = {family:"",sophia:"",same:true};
+  state.mealPlan[d][mt][who] = recipeId;
+  commit();
+}
+function toggleMealSame(d,mt){
+  if(!state.mealPlan[d]) state.mealPlan[d] = {};
+  if(!state.mealPlan[d][mt]) state.mealPlan[d][mt] = {family:"",sophia:"",same:true};
+  state.mealPlan[d][mt].same = !state.mealPlan[d][mt].same;
+  commit();
 }
 function newRecipePhoto(el){
   shrinkPhoto(el, data=>{
@@ -955,7 +1012,7 @@ function vMore(){
     const cat = CATS[b.cat]||CATS.self;
     return `<div class="listitem"><span class="catdot" style="background:var(${cat.v})"></span>
       <div class="grow"><b>${fmtTime(b.start)}</b> ${esc(b.title)}
-        <div class="tiny">${(b.days||[]).map(d=>DAYS[d]).join(" ")}${b.pickup!=="any"?` · ${b.pickup==="only"?"pickup days only":"no-pickup days only"}`:""}${b.type&&b.type!=="simple"?` · ${TYPES[b.type]||b.type}`:""}</div></div>
+        <div class="tiny">${(b.days||[]).map(d=>DAYS[d]).join(" ")}${b.pickup!=="any"?` · ${b.pickup==="only"?"pickup days only":"no-pickup days only"}`:""}${b.type&&b.type!=="simple"?` · ${TYPES[b.type]||b.type}${b.type==="meals"?" ("+(b.mealType||"Dinner")+")":""}`:""}</div></div>
       <button class="small" onclick="ui.editBlock='${b.id}';render()">Edit</button></div>`;
   }).join("");
   h += `<button style="margin-top:8px" onclick="addBlock()">+ Add a block</button>`;
@@ -985,8 +1042,11 @@ function blockEditor(b){
     <div class="row"><div class="field" style="flex:1"><label>Start</label><input id="be-start" type="time" value="${b.start}"></div>
       <div class="field" style="flex:1"><label>End (optional)</label><input id="be-end" type="time" value="${b.end||""}"></div></div>
     <div class="field"><label>Note</label><textarea id="be-note" rows="2">${esc(b.note||"")}</textarea></div>
-    <div class="field"><label>What's inside</label><select id="be-type">
+    <div class="field"><label>What's inside</label><select id="be-type" onchange="document.getElementById('be-mealtype-wrap').style.display=this.value==='meals'?'':'none'">
       ${Object.entries(TYPES).map(([t,label])=>`<option value="${t}" ${(b.type||"simple")===t?"selected":""}>${label}</option>`).join("")}</select></div>
+    <div class="field" id="be-mealtype-wrap" style="display:${b.type==="meals"?"":"none"}"><label>Which meal</label><select id="be-mealtype">
+      ${["Any",...MEALTYPES].map(t=>`<option value="${t}" ${(b.mealType||"Dinner")===t?"selected":""}>${t}</option>`).join("")}</select>
+      <p class="tiny" style="margin-top:4px">Recipes are assigned per day in the <a href="#" onclick="setTab('meals');return false">Meals tab</a>. "Any" shows every planned meal for the day in this block.</p></div>
     <div class="row"><div class="field" style="flex:1"><label>Category</label><select id="be-cat">
       ${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${b.cat===k?"selected":""}>${c.label}</option>`).join("")}</select></div>
     <div class="field" style="flex:1"><label>Pickup days?</label><select id="be-pickup">
@@ -1009,6 +1069,7 @@ function saveBlock(id){
   b.note=document.getElementById("be-note").value;
   b.cat=document.getElementById("be-cat").value;
   b.type=document.getElementById("be-type").value;
+  if(b.type==="meals") b.mealType=document.getElementById("be-mealtype").value;
   b.pickup=document.getElementById("be-pickup").value;
   b.days=[...document.querySelectorAll("#be-days button.on")].map(x=>+x.dataset.d);
   ui.editBlock=null; commit();
