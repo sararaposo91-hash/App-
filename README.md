@@ -1,24 +1,5 @@
 # Clearday
 
-A personal daily operating system built for Sara — open it in the morning and the whole day is already laid out, so the mental load lives in the app instead of in your head.
+Single-file life-management app (`index.html`, no build). Data lives in your browser (localStorage key `clearday-v1`); updates never reset it — they migrate additively and keep a backup (`clearday-v1-backup-rev4`, restorable from More → Data).
 
-## What's inside
-
-- **Today** — a timestamped, checkable timeline of the whole day. It knows the difference between pickup days (free until 11:30) and no-pickup days (free until 12:30) via a one-tap toggle, and adjusts the work block and bonus block automatically. Includes AM/PM skincare steps, supplement check-offs, rotating focus blocks (Amazon influencer, AI side hustle, decluttering, digital cleanup, budget & vacation planning), daily core exercises, Sophia's afternoon planned in 30-minute activity blocks, and rotating evenings (date night, game night, coloring/hobby night, weekly planning).
-- **Journal** — morning prompts: one affirmation, one manifestation, three gratitudes, a win from yesterday, and today's intention — plus a brain-clear box, meditation/affirmation links, streak tracking, and browsable past entries.
-- **Gym** — log exercises as weight × reps sets, see what you lifted last time (one-tap copy), per-exercise progress table and trend line, and a post-workout symptom/soreness log.
-- **Meals** — a visual recipe box (cards with photos stored on-device) organized by meal type — Breakfast, Lunch, Dinner, Snack — plus links out to recipe websites, a weekly meal planner where family and Sophia's meals are set separately per day per meal (with a one-tap "she eats the same" toggle), and a prep & shopping checklist. Planned meals show automatically in any Today block set to content type "Meal plan."
-- **Sophia** — an activity idea bank tagged by skill area (fine motor, gross motor, language, sensory, creative, cognitive, imaginative, practical life) that feeds the afternoon plan. Add your own ideas anytime.
-- **More** — brain dump (with "put on today's list"), plus editors for everything: schedule blocks and times, weekday rotations, supplements, skincare steps, and links. Every block has a "What's inside" content type (meditation links, journal prompts, skincare steps, supplements, gym log, Sophia plan, meal plan, rotating notes, or a plain check-off) — a meal-plan block also picks which meal (breakfast/lunch/dinner/snack/any) it shows. Supplements, skincare steps, and links each carry their own days of the week — so any day can be built block by block, entirely different from the next. Export/import a JSON backup.
-
-## How to use it
-
-`index.html` is the entire app — no build, no server, no account.
-
-- Open the file in any browser, or host it anywhere static (GitHub Pages works: Settings → Pages → deploy from branch).
-- On your phone, use **Add to Home Screen** so it opens like an app.
-- All data is stored privately in the browser's localStorage. Use **More → Export backup** to move devices or keep a safety copy.
-
-## Customizing
-
-Everything visible is editable in the app itself (More tab). Defaults — the schedule template, rotations, activity bank, skincare steps, supplements — live at the top of the `<script>` in `index.html` in the `defaults()` function if you ever want to change what a fresh install starts with.
+Tabs: **Today** (editable daily blocks, pickup toggle, water, belly check) · **Mind** (journal + monthly affirmation/manifestation calendar) · **Health** (12-week rebuild plan, workouts, gut log, weekly check-in) · **Meals** (recipes, weekly plan with macros, grocery list, prep) · **Sofia** (afternoon plan, idea bank) · **More** (edit any weekday, pickup days, prompts, export/import).

@@ -151,6 +151,39 @@ summary{cursor:pointer;font-weight:600}
 .listitem .grow{flex:1;min-width:0}
 .faded{color:var(--muted);text-decoration:line-through}
 .notice{background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:.88rem;margin-bottom:12px}
+
+/* ---- rebuild update ---- */
+.grow{flex:1;min-width:0}
+.num{font-variant-numeric:tabular-nums}
+.seg{display:flex;gap:4px;background:var(--card2);padding:3px;border-radius:12px;margin:12px 0 14px}
+.seg button{flex:1;border:none;background:none;padding:7px 4px;border-radius:9px;font-size:.88rem;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+.editbtn{flex:none;border:none;background:none;color:var(--muted);padding:2px 6px;font-size:1rem;align-self:flex-start}
+.plainlist{margin:6px 0 0;padding-left:18px}
+.plainlist li{margin:2px 0}
+.whatsnew{border-color:var(--accent)}
+.affcard{background:linear-gradient(135deg,var(--accent-soft),var(--card))}
+.affq{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.05rem;line-height:1.35;margin-top:4px}
+.affq.big{font-size:1.4rem;margin-top:8px}
+.affm{margin-top:4px}
+.affmini{margin-top:6px}
+.scale{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.scale button{width:30px;height:30px;padding:0;border-radius:8px;font-variant-numeric:tabular-nums;font-size:.85rem}
+.scale button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calh{text-align:center;font-size:.7rem;color:var(--muted);padding:2px 0}
+.calday{aspect-ratio:1;padding:0;border-radius:10px;font-variant-numeric:tabular-nums;font-size:.9rem;position:relative}
+.calday.tod{border-color:var(--accent);color:var(--accent);font-weight:700}
+.calday.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.calday.done::after{content:"";position:absolute;bottom:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
+.calday.sel.done::after{background:var(--accent-ink)}
+.habit{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.habit .dots{display:flex;gap:4px}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line);display:inline-block}
+.dot.on{background:var(--accent);border-color:var(--accent)}
+.dot.tod{outline:1.5px solid var(--muted);outline-offset:1px}
+.habit .pill{background:var(--card2);color:var(--muted)}
+.habit .pill.ok{background:var(--accent);color:var(--accent-ink)}
 </style>
 </head>
 <body>
@@ -175,77 +208,251 @@ const TYPES = {
   "supps-pm":"Evening supplements",
   "gym":"Gym log shortcut",
   "meals":"Meal plan (from Meals)",
-  "sophia":"Sophia afternoon plan",
+  "sophia":"Sofia afternoon plan",
   "rot-bonus":"Rotating note: bonus block",
   "rot-hustle":"Rotating note: side hustle",
-  "rot-evening":"Rotating note: evening"
+  "rot-evening":"Rotating note: evening",
+  "wake":"Wake-up + wake-time log",
+  "gut-am":"Belly check: bloat on waking",
+  "gut-pm":"Belly check: bloat tonight",
+  "affirm":"Today's affirmation + manifestation",
+  "bag":"Bag tomorrow's main (from Meals)",
+  "checkin":"Weekly weigh-in (links to Health)"
 };
 const CATS = {
-  work:{label:"Work",v:"--c-work"}, sophia:{label:"Sophia",v:"--c-sophia"},
+  work:{label:"Work",v:"--c-work"}, sophia:{label:"Sofia",v:"--c-sophia"},
   self:{label:"You",v:"--c-self"}, home:{label:"Home",v:"--c-home"},
   health:{label:"Health",v:"--c-health"}, evening:{label:"Evening",v:"--c-evening"}
 };
 
-function defaults(){
-  const skinAM = ["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"];
-  const skinPM = ["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"];
+const REV = 5;
+
+/* ---- the original (rev 4) defaults, kept ONLY so the update can tell which of your
+   items you never touched (safe to refresh) from the ones you edited (left alone) ---- */
+const OLD_BLOCKS = [
+  {id:"supps-am",days:WEEKDAYS,pickup:"any",start:"08:40",end:"",title:"Water + morning supplements",note:"",cat:"self",type:"supps-am"},
+  {id:"skin-am",days:WEEKDAYS,pickup:"any",start:"08:45",end:"",title:"AM skincare",note:"",cat:"self",type:"skincare-am"},
+  {id:"journal",days:WEEKDAYS,pickup:"any",start:"08:55",end:"",title:"Morning journal",note:"Affirmation · manifestation · 3 gratitudes · yesterday's win · today's intention",cat:"self",type:"journal"},
+  {id:"meditate",days:WEEKDAYS,pickup:"any",start:"09:05",end:"",title:"Meditation or affirmations",note:"10 minutes. Headphones on, eyes closed.",cat:"self",type:"links"},
+  {id:"work-p",days:WEEKDAYS,pickup:"only",start:"09:15",end:"11:25",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
+  {id:"work-n",days:WEEKDAYS,pickup:"not",start:"09:15",end:"12:00",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
+  {id:"bonus",days:WEEKDAYS,pickup:"not",start:"12:00",end:"12:25",title:"Bonus block",note:"",cat:"home",type:"rot-bonus"},
+  {id:"pickup",days:WEEKDAYS,pickup:"only",start:"11:30",end:"12:15",title:"School pickup",note:"Leave by 11:30.",cat:"sophia",type:"simple"},
+  {id:"lunch",days:WEEKDAYS,pickup:"any",start:"12:30",end:"12:55",title:"Lunch + 10-minute reset",note:"Eat sitting down. Then one quick tidy of whatever room bugs you most.",cat:"home",type:"simple"},
+  {id:"strength",days:[1,3,5],pickup:"any",start:"13:00",end:"14:00",title:"Strength training",note:"Log it in the Gym tab so you can watch the numbers climb.",cat:"health",type:"gym"},
+  {id:"sidehustle",days:[2,4],pickup:"any",start:"13:00",end:"14:00",title:"Side-hustle hour",note:"",cat:"work",type:"rot-hustle"},
+  {id:"core",days:WEEKDAYS,pickup:"any",start:"14:10",end:"14:20",title:"Core exercises + stretch",note:"10 minutes, every weekday. Non-negotiable but tiny.",cat:"health",type:"simple"},
+  {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"14:30",end:"17:00",title:"Sofia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
+  {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:00",end:"18:00",title:"Dinner — Sofia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"meals",mealType:"Dinner"},
+  {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sofia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
+  {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + evening supplements",note:"",cat:"self",type:"skincare-pm"},
+  {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"22:00",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
+  {id:"wk-slow",days:WEEKEND,pickup:"any",start:"08:30",end:"",title:"Slow morning — supplements + skincare",note:"No rush today.",cat:"self",type:"supps-am"},
+  {id:"wk-journal",days:WEEKEND,pickup:"any",start:"09:00",end:"",title:"Journal if you feel like it",note:"Even one gratitude counts.",cat:"self",type:"journal"},
+  {id:"wk-family",days:WEEKEND,pickup:"any",start:"10:00",end:"12:30",title:"Family time",note:"Park, errand adventure, or nothing at all.",cat:"sophia",type:"simple"},
+  {id:"wk-reset",days:[6],pickup:"any",start:"13:00",end:"14:00",title:"One-hour house reset",note:"Timer on. Declutter one zone or catch up on laundry — then stop.",cat:"home",type:"simple"}
+];
+const OLD_ROT = {
+  bonus:{1:"Declutter one small zone (one drawer, one shelf — timer for 20 min)",2:"Digital cleanup: AI chats + phone photos",3:"Declutter one small zone (keep going where Monday left off)",4:"Digital cleanup: YouTube + business accounts",5:"Money & plans: budget check for the week + vacation ideas"},
+  hustle:{2:"Amazon influencer: film or edit one short video",4:"AI side hustle: one concrete step (not research — output)"},
+  evening:{0:"Plan the week: look at the calendar, budget glance, pick next week's dinners",1:"Coloring or a fun hobby — hands busy, brain off",2:"Game night — you play, guilt-free",3:"Free choice: games, show, or early night",4:"Movie or show together",5:"Date night with Santino 💛",6:"Whatever feels good — no assignment tonight"}
+};
+const OLD_SKIN = {
+  AM:["Rinse or gentle cleanse","Vitamin C serum","Moisturizer","SPF 30+"],
+  PM:["Cleanse (double cleanse if wearing SPF/makeup)","Treatment serum or retinol (alternate nights)","Moisturizer","Eye cream"]
+};
+
+/* ---- the new defaults ---- */
+function newBlocks(){ return [
+  {id:"wake",days:WEEKDAYS,pickup:"any",start:"06:30",end:"",title:"Wake up",note:"This is your target time. Once it feels easy, move it 15 minutes earlier. Log when you actually woke — no judging.",cat:"self",type:"wake"},
+  {id:"gut-am",days:WEEKDAYS,pickup:"any",start:"06:35",end:"",title:"Belly check — before you eat",note:"",cat:"health",type:"gut-am"},
+  {id:"checkin",days:[1],pickup:"any",start:"06:38",end:"",title:"Monday check-in: weigh in + waist",note:"Fasted, same conditions every week. Log it in Health → Check-in.",cat:"health",type:"checkin"},
+  {id:"supps-am",days:WEEKDAYS,pickup:"any",start:"06:40",end:"",title:"Water + morning supplements",note:"Probiotic next to the coffee mug.",cat:"self",type:"supps-am"},
+  {id:"journal",days:WEEKDAYS,pickup:"any",start:"06:50",end:"",title:"Morning journal + affirmation",note:"Affirmation · manifestation · 3 gratitudes · yesterday's win · today's intention",cat:"self",type:"journal"},
+  {id:"meditate",days:WEEKDAYS,pickup:"any",start:"07:00",end:"",title:"Meditation or affirmations",note:"10 minutes. Headphones on, eyes closed.",cat:"self",type:"links"},
+  {id:"skin-am",days:WEEKDAYS,pickup:"any",start:"07:20",end:"",title:"AM skincare",note:"",cat:"self",type:"skincare-am"},
+  {id:"dropoff",days:WEEKDAYS,pickup:"any",start:"08:00",end:"08:15",title:"Sofia out the door",note:"Santino does school drop-off.",cat:"sophia",type:"simple"},
+  {id:"workout-s",days:[1,3],pickup:"any",start:"08:15",end:"09:00",title:"Strength — Ladder",note:"Effort 6–7 out of 10: reps and tempo before weight. Short on time? The 10-minute minimum counts.",cat:"health",type:"gym"},
+  {id:"workout-c",days:[2,4,5],pickup:"any",start:"08:15",end:"09:00",title:"Treadmill walk + core",note:"20-minute walk at effort 5–6 (you can talk in full sentences), then your core block while you're warm. Short on time? The 10-minute minimum counts.",cat:"health",type:"simple"},
+  {id:"work",days:WEEKDAYS,pickup:"any",start:"09:15",end:"12:00",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
+  {id:"bonus",days:WEEKDAYS,pickup:"any",start:"12:00",end:"12:15",title:"15-minute reset",note:"",cat:"home",type:"rot-bonus"},
+  {id:"lunch",days:WEEKDAYS,pickup:"any",start:"12:30",end:"12:55",title:"Lunch",note:"Eat sitting down. Planned meal below.",cat:"home",type:"meals",mealType:"Lunch"},
+  {id:"sidehustle",days:[2,4],pickup:"any",start:"13:00",end:"14:00",title:"Side-hustle hour",note:"",cat:"work",type:"rot-hustle"},
+  {id:"work-pm",days:[1,3,5],pickup:"any",start:"13:00",end:"15:00",title:"Core work — afternoon",note:"",cat:"work",type:"simple"},
+  {id:"work-pm2",days:[2,4],pickup:"any",start:"14:00",end:"15:00",title:"Core work — afternoon",note:"",cat:"work",type:"simple"},
+  {id:"back",days:WEEKDAYS,pickup:"any",start:"15:00",end:"15:10",title:"3-minute back reset",note:"Cat-cow ×8 · open book ×6 each side · figure-4 stretch 30 sec each side · child's pose 30 sec",cat:"health",type:"simple"},
+  {id:"pickup",days:WEEKDAYS,pickup:"only",start:"15:15",end:"16:00",title:"Pick up Sofia",note:"Leave at 3:15 — home by 4:00.",cat:"sophia",type:"simple"},
+  {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"16:00",end:"17:45",title:"Sofia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
+  {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:45",end:"18:30",title:"Dinner — Sofia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"meals",mealType:"Dinner"},
+  {id:"bag",days:[6,1,3],pickup:"any",start:"18:30",end:"18:45",title:"Bag tomorrow's main (12 min)",note:"While you clean up dinner — no separate prep block.",cat:"home",type:"bag"},
+  {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sofia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
+  {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + evening supplements",note:"",cat:"self",type:"skincare-pm"},
+  {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"21:30",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
+  {id:"gut-pm",days:ALLDAYS,pickup:"any",start:"21:30",end:"",title:"Belly check — tonight",note:"",cat:"health",type:"gut-pm"},
+  {id:"winddown",days:ALLDAYS,pickup:"any",start:"21:45",end:"22:00",title:"Wind down — in bed by 10",note:"Phone down · gym clothes out · 10-minute kitchen tidy",cat:"self",type:"simple"},
+  {id:"wk-slow",days:WEEKEND,pickup:"any",start:"08:30",end:"",title:"Slow morning — supplements + skincare",note:"No rush today.",cat:"self",type:"supps-am"},
+  {id:"wk-gut",days:WEEKEND,pickup:"any",start:"08:20",end:"",title:"Belly check — before you eat",note:"",cat:"health",type:"gut-am"},
+  {id:"wk-journal",days:WEEKEND,pickup:"any",start:"09:00",end:"",title:"Journal + affirmation (if you feel like it)",note:"Even one gratitude counts.",cat:"self",type:"journal"},
+  {id:"wk-family",days:WEEKEND,pickup:"any",start:"10:00",end:"12:30",title:"Family time",note:"Park, errand adventure, or nothing at all.",cat:"sophia",type:"simple"},
+  {id:"sun-prep",days:[0],pickup:"any",start:"13:00",end:"13:35",title:"Sunday nap prep (35 min)",note:"4 oat jars · 4 chia cups · 1 pot of rice. Protein balls every second week. That's all.",cat:"home",type:"simple"},
+  {id:"wk-reset",days:[6],pickup:"any",start:"13:00",end:"14:00",title:"One-hour house reset",note:"Timer on. Declutter one zone or catch up on laundry — then stop.",cat:"home",type:"simple"}
+]; }
+function newRotations(){ return {
+  bonus:{1:"Declutter one small zone (one drawer, one shelf — timer for 15 min)",2:"Digital cleanup: AI chats + phone photos",3:"Declutter one small zone (keep going where Monday left off)",4:"Digital cleanup: YouTube + business accounts",5:"Money & plans: budget check for the week + vacation ideas"},
+  hustle:{2:"Amazon influencer: film or edit one short video",4:"AI side hustle: one concrete step (not research — output)"},
+  evening:{0:"Plan the week: look at the calendar, budget glance, pick next week's dinners",1:"Coloring or a fun hobby — hands busy, brain off",2:"Game night — you play, guilt-free",3:"Free choice: games, show, or early night",4:"Movie or show together",5:"Date night with Santino 💛",6:"Whatever feels good — no assignment tonight"}
+}; }
+function newSkincare(){
+  const A = ALLDAYS;
+  const mk = a => a.map(([text,days])=>({id:sid(),text,days:[...days]}));
   return {
-    rev:4,
+    AM: mk([
+      ["Cleanse — La Roche-Posay Toleriane Hydrating Gentle Cleanser",A],
+      ["Vitamin C — COSRX Vitamin C 23 Serum",A],
+      ["Niacinamide 12% + Zinc 2% — Naturium",A],
+      ["Hyaluronic acid serum",A],
+      ["Moisturizer — Paula's Choice Omega+ (SkinFix if skin feels tight)",A],
+      ["SPF 50 — Supergoop Unseen Sunscreen",A]
+    ]),
+    PM: mk([
+      ["Oil cleanse — Byoma Milky Oil Cleanser",A],
+      ["Gentle cleanse — La Roche-Posay Toleriane",A],
+      ["Peptide serum — The Ordinary Multi-Peptide + HA (not on BHA nights)",[0,2,3,4,6]],
+      ["Tretinoin (as prescribed)",[0,2,4,6]],
+      ["BHA — Naturium BHA 2% (non-tretinoin nights)",[1,5]],
+      ["Moisturizer — SkinFix Barrier+ Triple Lipid-Peptide Cream",A],
+      ["LED mask — optional, any non-tretinoin night",[1,3,5]]
+    ])
+  };
+}
+function newSupplements(){ const A=ALLDAYS; return [
+  {id:sid(),name:"Probiotic",time:"AM",note:"next to your coffee mug",days:[...A]},
+  {id:sid(),name:"Multivitamin",time:"AM",note:"with breakfast",days:[...A]},
+  {id:sid(),name:"Vitamin D",time:"AM",note:"",days:[...A]},
+  {id:sid(),name:"Omega-3",time:"AM",note:"with food",days:[...A]},
+  {id:sid(),name:"Pre-workout",time:"AM",note:"workout days",days:[1,3]},
+  {id:sid(),name:"Magnesium glycinate",time:"PM",note:"30 min before bed",days:[...A]}
+]; }
+function newSofiaPlan(){ return [
+  {id:"sp1",time:"4:00",kind:"text",text:"Snack + books on the couch"},
+  {id:"sp2",time:"4:30",kind:"act1",text:""},
+  {id:"sp3",time:"5:00",kind:"text",text:"Outside time or big movement"},
+  {id:"sp4",time:"5:30",kind:"text",text:"Independent play while you start dinner"}
+]; }
+function newPriorities(){ return [
+  {id:sid(),text:"Get back to a healthy state — gut, energy, strength"},
+  {id:sid(),text:"Work out consistently — the 10-minute minimum always counts"},
+  {id:sid(),text:"Wake up early again — one small step earlier at a time"},
+  {id:sid(),text:"Journal, affirm and manifest every morning"},
+  {id:sid(),text:"Heal my nervous system and keep my evenings restful"},
+  {id:sid(),text:"Declutter the house — 15 minutes a day"}
+]; }
+function newNonneg(){ return [
+  {id:sid(),text:"Workouts: 3 a week"},
+  {id:sid(),text:"One self-care night a week"},
+  {id:sid(),text:"15 minutes of decluttering a day"}
+]; }
+function newHabits(){ return [
+  {id:"h1",label:"Workouts",blockIds:["workout-s","workout-c","strength"],perWeek:3},
+  {id:"h2",label:"Woke on target",blockIds:["wake"],perWeek:5},
+  {id:"h3",label:"Journal + affirmation",blockIds:["journal","wk-journal"],perWeek:7},
+  {id:"h4",label:"15-min declutter",blockIds:["bonus"],perWeek:5},
+  {id:"h5",label:"Belly check",blockIds:["gut-am","wk-gut"],perWeek:7},
+  {id:"h6",label:"Wind down, in bed by 10",blockIds:["winddown"],perWeek:5}
+]; }
+function newPrepPlan(){ return [
+  {id:sid(),title:"Sunday nap — 35 min",text:"4 oat jars, 4 chia cups, 1 pot of rice. Protein balls every second week."},
+  {id:sid(),title:"Sat, Mon & Wed nights — 12 min each",text:"Bag the next block's main while you clean up dinner. Buy chicken or beef within a day of bagging."},
+  {id:sid(),title:"Groceries",text:"Shop a few times a week to keep produce fresh, or order delivery. Use the per-recipe list below."}
+]; }
+
+/* ---- recipes from the rebuild plan (per ONE portion for you; Santino and Sofia are scaled in Meals) ---- */
+function seedRecipes(){
+  const R=(id,name,tag,sub,m,ing,fx,o)=>Object.assign({id:"seed-"+id,name,url:"",tag,sub,img:"",m,iron:false,
+    ing:ing.map(([n,q,u])=>({n,q,u})),fx:fx,prep:"",cook:"",kid:"",swap:""},o);
+  return [
+    R("b1","Turkey & veggie scramble + potato","Breakfast","Stovetop · 12 min",[385,34,30,15],
+      [["Eggs",2,"each"],["Egg whites (carton)",0.25,"cup"],["Lean ground turkey",2,"oz"],["Spinach",2,"oz"],["Yellow potato",4,"oz"]],[],
+      {cook:"Stovetop only. Crisp the diced potato in a nonstick pan (8 min), push aside, brown the turkey, add spinach, pour in the eggs and scramble 2 min.",kid:"Same scramble, no salt or pepper, potato cut small."}),
+    R("b2","Yogurt overnight oats","Breakfast","Make-ahead jars",[385,32,42,10],
+      [["Greek yogurt, plain nonfat",1,"cup"],["Rolled oats",0.33,"cup"],["Chia seeds",1,"tbsp"],["Hemp hearts",1,"tbsp"],["Blueberries",0.5,"cup"]],[],
+      {prep:"Sunday: make 4 jars — oats, chia, hemp, yogurt and 1/3 cup water or milk.",cook:"Add berries when you eat it. Protein powder stays out of the oats; have it as a separate shake if you want more.",kid:"A few spoonfuls plain, with mashed blueberries."}),
+    R("b3","Sweet potato turkey hash + egg","Breakfast","Skillet · 15 min",[390,32,33,14],
+      [["Sweet potato",4,"oz"],["Lean ground turkey",3,"oz"],["Eggs",1,"each"],["Egg whites (carton)",0.25,"cup"],["Bell pepper",0.2,"each"]],[],
+      {cook:"Skillet: cubed sweet potato 8 min, add turkey and pepper 5 min, push aside and scramble the egg and whites in the same pan.",kid:"Soft sweet potato and egg, turkey crumbled very fine."}),
+    R("s1","Protein-almond balls (2)","Snack","Batch · lasts 2 weeks",[190,9,19,9],
+      [["Rolled oats",2,"tbsp"],["Almond butter",1,"tbsp"],["Protein powder",0.5,"scoop"],["Honey",1,"tsp"]],[],
+      {prep:"Batch of 20: 1 cup oats, 1/2 cup almond butter, 5 scoops protein powder, 3 tbsp honey, a splash of milk to bind. Roll and chill. Lasts 2 weeks in the fridge.",kid:"Skip for Sofia — whole nut-butter balls are a choking risk."}),
+    R("s2","Chia pudding cup","Snack","Make-ahead cups",[175,10,17,8],
+      [["Chia seeds",1.5,"tbsp"],["Unsweetened almond milk",0.75,"cup"],["Greek yogurt, plain nonfat",0.25,"cup"],["Blueberries",0.25,"cup"]],[],
+      {prep:"Make 4 on Sunday: stir chia, milk and yogurt in a cup and chill 4 hours or overnight.",cook:"Top with berries.",kid:"Plain chia pudding with berries is a fine toddler snack."}),
+    R("s3","Protein shake + apple","Snack","On days protein runs short",[220,23,24,4],
+      [["Protein powder",1,"scoop"],["Unsweetened almond milk",1,"cup"],["Apple",1,"each"]],[],
+      {cook:"Shake with water or almond milk."}),
+    R("m1","Adobo chicken, avocado salsa, rice & beans","Dinner","Mexican · air fryer",[447,36,47,11],
+      [["Chicken breast (Bell & Evans)",4.5,"oz"],["Rice, dry",0.22,"cup"],["Black beans, canned",0.25,"cup"],["Avocado",0.25,"each"],["Tomato",0.15,"each"],["Lime",0.1,"each"]],
+      ["Cilantro","Adobo seasoning"],
+      {prep:"Bag the night before: sliced chicken, 1 tsp oil per breast, adobo, lime juice.",cook:"Air fryer 380°F, 12–15 min, flip once, to 165°F inside. Salsa: dice avocado, tomato, cilantro, lime. Warm rice and beans together.",kid:"Plain chicken (no adobo heat) diced small, rice, lightly mashed beans, avocado cubes.",swap:"If bloating spikes: skip onion in the salsa, use scallion greens."}),
+    R("m2","Cheeseburger lettuce wraps + potato wedges","Dinner","American · air fryer · iron-rich",[436,33,45,14],
+      [["Ground beef 93/7, grass-fed organic",4.5,"oz"],["Cheese slices",0.5,"each"],["Butter lettuce",0.2,"head"],["Tomato",0.1,"each"],["Yellow potato",7,"oz"]],
+      ["Pickles","Ketchup & mustard"],
+      {iron:true,prep:"Buy the beef the morning you bag it. Form patties (4.5 oz each, thumb dent), stack with parchment, fridge. Cut potatoes into wedges in a bag with 1 tsp oil per portion and salt.",cook:"Air fryer: wedges 400°F 18 min (start first), add patties for the last 9 min, cheese for the final minute. Serve in lettuce cups.",kid:"Small plain patty pieces, soft wedges cut short, no pickle.",swap:"Vitamin C with the meal (tomato, pepper) helps iron absorption from food. Tea or coffee is better an hour away from it."}),
+    R("m3","Lemon-herb chicken, roasted veg, rice, tzatziki","Dinner","Mediterranean · air fryer",[440,37,45,11],
+      [["Chicken breast (Bell & Evans)",4.5,"oz"],["Rice, dry",0.22,"cup"],["Zucchini",0.3,"each"],["Bell pepper",0.3,"each"],["Tzatziki",3,"tbsp"],["Feta",1,"tbsp"],["Lemon",0.15,"each"]],
+      ["Dried oregano"],
+      {prep:"Bag chicken with lemon juice, oregano, 1 tsp oil. Bag chopped zucchini and pepper separately with 1 tsp oil.",cook:"Air fryer 380°F: veg 10 min, add chicken, 12 min more to 165°F. Spoon tzatziki and feta on top.",kid:"Plain lemon chicken diced small, soft veg, tzatziki as a dip.",swap:"If dairy bothers you, swap tzatziki for olive oil and lemon."}),
+    R("m4","Korean beef rice bowl, quick-pickled cucumber","Dinner","Asian slot (once a week max) · iron-rich",[435,31,44,14],
+      [["Ground beef 93/7, grass-fed organic",4.5,"oz"],["Rice, dry",0.25,"cup"],["Cucumber",0.3,"each"],["Carrot",0.2,"each"]],
+      ["Gochujang","Soy sauce (low sodium)","Scallions","Rice vinegar"],
+      {iron:true,prep:"Per 2 lb beef: 3 tbsp gochujang, 4 tbsp soy, 1.5 tbsp sesame oil, 4 cloves garlic, 1 tbsp ginger, 1.5 tsp honey, 1 tbsp rice vinegar. Mix the sauce in a jar, the beef in a bag.",cook:"Skillet, medium-high, 8 min, add sauce for the last 2 min. Quick pickles: sliced cucumber, rice vinegar, a pinch of salt, 10 min.",kid:"Beef cooked before the sauce goes in, plain rice, cucumber sticks.",swap:"Garlic-infused oil in place of fresh garlic is a gentler test if your belly log points at garlic."}),
+    R("m5","Taco turkey & sweet potato skillet","Dinner","Mexican · skillet or sheet pan",[440,32,47,13],
+      [["Ground turkey 93/7, organic",4.5,"oz"],["Sweet potato",6,"oz"],["Black beans, canned",0.25,"cup"],["Salsa",3,"tbsp"],["Bell pepper",0.3,"each"],["Greek yogurt, plain nonfat",2,"tbsp"],["Avocado",0.125,"each"]],
+      ["Taco seasoning"],
+      {prep:"Bag cubed sweet potato with 1 tsp oil per portion. Turkey in its own bag with taco seasoning.",cook:"Air fryer sweet potato 400°F 15 min. Brown turkey and pepper in a skillet 8 min, stir in beans and salsa. Top with yogurt and avocado. Eat within 3 days of buying the turkey.",kid:"Unseasoned turkey cooked before the seasoning goes in, soft sweet potato, mashed beans.",swap:"Rinse canned beans well. Smaller bean portion if gas is a pattern."}),
+    R("m6","Philly cheesesteak bowl","Dinner","American · skillet · iron-rich",[446,34,46,13],
+      [["Sirloin steak, grass-fed organic",4.5,"oz"],["Bell pepper",0.5,"each"],["Onion",0.25,"each"],["Mushrooms",2,"oz"],["Provolone",0.5,"each"],["Rice, dry",0.22,"cup"]],
+      ["Worcestershire"],
+      {iron:true,prep:"Freeze the steak 30 min and slice it thin. Bag the steak with Worcestershire and pepper. Bag sliced pepper, onion and mushroom separately.",cook:"Hot skillet: veg 6 min, push aside, steak 3 min, cheese on top 1 min, over rice.",kid:"Steak cut tiny and cooked through, soft peppers, rice.",swap:"Scallion greens instead of onion if onion is a suspect."})
+  ];
+}
+function seedPlan(week){   // week "A": adobo · burgers · lemon chicken   |   "B": Korean beef · turkey skillet · cheesesteak
+  const mains = week==="A" ? ["seed-m1","seed-m2","seed-m3"] : ["seed-m4","seed-m5","seed-m6"];
+  const blockOf = {0:0,1:0,2:1,3:1,4:2,5:2};          // Sun–Mon, Tue–Wed, Thu–Fri; Sat is a flex day
+  const bf = {0:"seed-b3",1:"seed-b2",2:"seed-b1",3:"seed-b2",4:"seed-b3",5:"seed-b2",6:"seed-b1"};
+  const sn = {0:"seed-s2",1:"seed-s2",2:"seed-s1",3:"seed-s2",4:"seed-s1",5:"seed-s2",6:"seed-s3"};
+  const plan = {};
+  for(let wd=0; wd<7; wd++){
+    plan[wd] = {
+      Breakfast:{family:bf[wd],sophia:"",same:true},
+      Snack: sn[wd]==="seed-s1" ? {family:"seed-s1",sophia:"seed-s2",same:false} : {family:sn[wd],sophia:"",same:true}
+    };
+    if(blockOf[wd]!==undefined){
+      plan[wd].Lunch  = {family:mains[blockOf[wd]],sophia:"",same:true};
+      plan[wd].Dinner = {family:mains[blockOf[wd]],sophia:"",same:true};
+    }
+  }
+  return plan;
+}
+
+function defaults(){
+  const sk = newSkincare();
+  return {
+    rev:REV,
     settings:{
       name:"Sara",
-      skincareAM:skinAM,
-      skincarePM:skinPM
+      skincareAM:OLD_SKIN.AM, skincarePM:OLD_SKIN.PM,
+      pickupDays:[1,4], sx:1.5, sofiaPortion:0.5,
+      targets:{cal:1450,p:109,c:145,f:48},
+      planStart:"2026-11-02", goalWeight:"",
+      sofiaPlan:newSofiaPlan(), jprompts:{},
+      habitMap:newHabits(), priorities:newPriorities(), nonneg:newNonneg(),
+      dropOrder:"If a week falls apart, drop things in this order: decluttering → the Amazon slot → self-care. Workouts and the Sunday reset go last.",
+      prepPlan:newPrepPlan()
     },
-    skincare:{
-      AM: skinAM.map(t=>({id:sid(),text:t,days:[...ALLDAYS]})),
-      PM: skinPM.map(t=>({id:sid(),text:t,days:[...ALLDAYS]}))
-    },
-    blocks:[
-      {id:"supps-am",days:WEEKDAYS,pickup:"any",start:"08:40",end:"",title:"Water + morning supplements",note:"",cat:"self",type:"supps-am"},
-      {id:"skin-am",days:WEEKDAYS,pickup:"any",start:"08:45",end:"",title:"AM skincare",note:"",cat:"self",type:"skincare-am"},
-      {id:"journal",days:WEEKDAYS,pickup:"any",start:"08:55",end:"",title:"Morning journal",note:"Affirmation · manifestation · 3 gratitudes · yesterday's win · today's intention",cat:"self",type:"journal"},
-      {id:"meditate",days:WEEKDAYS,pickup:"any",start:"09:05",end:"",title:"Meditation or affirmations",note:"10 minutes. Headphones on, eyes closed.",cat:"self",type:"links"},
-      {id:"work-p",days:WEEKDAYS,pickup:"only",start:"09:15",end:"11:25",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
-      {id:"work-n",days:WEEKDAYS,pickup:"not",start:"09:15",end:"12:00",title:"Core work — your 9-to-5",note:"Protect this. One task at a time; park distractions in the brain dump.",cat:"work",type:"simple"},
-      {id:"bonus",days:WEEKDAYS,pickup:"not",start:"12:00",end:"12:25",title:"Bonus block",note:"",cat:"home",type:"rot-bonus"},
-      {id:"pickup",days:WEEKDAYS,pickup:"only",start:"11:30",end:"12:15",title:"School pickup",note:"Leave by 11:30.",cat:"sophia",type:"simple"},
-      {id:"lunch",days:WEEKDAYS,pickup:"any",start:"12:30",end:"12:55",title:"Lunch + 10-minute reset",note:"Eat sitting down. Then one quick tidy of whatever room bugs you most.",cat:"home",type:"simple"},
-      {id:"strength",days:[1,3,5],pickup:"any",start:"13:00",end:"14:00",title:"Strength training",note:"Log it in the Gym tab so you can watch the numbers climb.",cat:"health",type:"gym"},
-      {id:"sidehustle",days:[2,4],pickup:"any",start:"13:00",end:"14:00",title:"Side-hustle hour",note:"",cat:"work",type:"rot-hustle"},
-      {id:"core",days:WEEKDAYS,pickup:"any",start:"14:10",end:"14:20",title:"Core exercises + stretch",note:"10 minutes, every weekday. Non-negotiable but tiny.",cat:"health",type:"simple"},
-      {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"14:30",end:"17:00",title:"Sophia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
-      {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:00",end:"18:00",title:"Dinner — Sophia can help",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"meals",mealType:"Dinner"},
-      {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sophia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
-      {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + evening supplements",note:"",cat:"self",type:"skincare-pm"},
-      {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"22:00",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
-      {id:"wk-slow",days:WEEKEND,pickup:"any",start:"08:30",end:"",title:"Slow morning — supplements + skincare",note:"No rush today.",cat:"self",type:"supps-am"},
-      {id:"wk-journal",days:WEEKEND,pickup:"any",start:"09:00",end:"",title:"Journal if you feel like it",note:"Even one gratitude counts.",cat:"self",type:"journal"},
-      {id:"wk-family",days:WEEKEND,pickup:"any",start:"10:00",end:"12:30",title:"Family time",note:"Park, errand adventure, or nothing at all.",cat:"sophia",type:"simple"},
-      {id:"wk-reset",days:[6],pickup:"any",start:"13:00",end:"14:00",title:"One-hour house reset",note:"Timer on. Declutter one zone or catch up on laundry — then stop.",cat:"home",type:"simple"}
-    ],
-    rotations:{
-      bonus:{1:"Declutter one small zone (one drawer, one shelf — timer for 20 min)",
-             2:"Digital cleanup: AI chats + phone photos",
-             3:"Declutter one small zone (keep going where Monday left off)",
-             4:"Digital cleanup: YouTube + business accounts",
-             5:"Money & plans: budget check for the week + vacation ideas"},
-      hustle:{2:"Amazon influencer: film or edit one short video",
-              4:"AI side hustle: one concrete step (not research — output)"},
-      evening:{0:"Plan the week: look at the calendar, budget glance, pick next week's dinners",
-               1:"Coloring or a fun hobby — hands busy, brain off",
-               2:"Game night — you play, guilt-free",
-               3:"Free choice: games, show, or early night",
-               4:"Movie or show together",
-               5:"Date night with Centino 💛",
-               6:"Whatever feels good — no assignment tonight"}
-    },
-    supplements:[
-      {id:sid(),name:"Multivitamin",time:"AM",note:"with breakfast",days:[...ALLDAYS]},
-      {id:sid(),name:"Vitamin D",time:"AM",note:"",days:[...ALLDAYS]},
-      {id:sid(),name:"Omega-3",time:"AM",note:"with food",days:[...ALLDAYS]},
-      {id:sid(),name:"Pre-workout",time:"AM",note:"gym days",days:[1,3,5]},
-      {id:sid(),name:"Magnesium",time:"PM",note:"30 min before bed",days:[...ALLDAYS]}
-    ],
+    skincare:sk,
+    blocks:newBlocks(),
+    rotations:newRotations(),
+    supplements:newSupplements(),
     links:[
       {id:sid(),label:"Insight Timer",url:"https://insighttimer.com/",days:[...ALLDAYS]},
       {id:sid(),label:"10-min morning meditation (YouTube)",url:"https://www.youtube.com/results?search_query=10+minute+morning+meditation",days:[...ALLDAYS]},
@@ -271,31 +478,114 @@ function defaults(){
       {id:sid(),title:"Letter or shape hunt with a flashlight",tag:"Language"},
       {id:sid(),title:"Nature walk — collect 5 treasures",tag:"Gross motor"}
     ],
-    recipes:[],     // {id,name,url,tag,img,notes} — tag is the meal type (Breakfast/Lunch/Dinner/Snack/...)
-    mealPlan:{},    // weekday (0-6) -> { Breakfast|Lunch|Dinner|Snack: {family:recipeId, sophia:recipeId, same:bool} }
-    prepList:[],    // {id,text,done}
-    days:{},        // dateKey -> {pickup, checks:{}, roll:0}
-    journal:{},     // dateKey -> {affirmation,manifestation,g1,g2,g3,win,intention,notes}
-    workouts:[],    // {id,date,exercises:[{name,sets:[{w,r}]}]}
-    symptoms:[],    // {id,date,soreness,note}
-    dump:[],        // {id,text,today,done,ts}
+    recipes:seedRecipes(),
+    mealPlan:seedPlan("B"),
+    prepList:[],
+    groc:{},
+    days:{},
+    journal:{},
+    workouts:[],
+    symptoms:[],
+    dump:[],
+    checkins:[],      // {id,date,weight,waist,note}
+    gutLog:[],        // {id,date,time,text,score}
+    doctorQs:[],      // {id,text,done}
+    affirm:{months:{},days:{},done:{}},
+    whatsNew:null,
     draft:null
   };
 }
 function sid(){ return Math.random().toString(36).slice(2,9); }
 
-let state, ui = {tab:"today", viewDate:null, editBlock:null, progressEx:"", showAllHist:false, sore:0};
+let state, ui = {tab:"today", viewDate:null, editBlock:null, editDay:null, progressEx:"", showAllHist:false, sore:0,
+  mindSub:"journal", healthSub:"plan", affMonth:null, affDay:null, editAff:false, grocDays:3, editRecipe:null, editAct:null, moreDay:null};
+
+function sigBlock(b){
+  return JSON.stringify([(b.days||[]).slice().sort().join(","),b.pickup,b.start,b.end||"",b.title,b.note||"",b.cat,b.type,b.mealType||""]);
+}
+
+/* rev 5 — the "Rebuild" update. Never overwrites anything you changed: untouched defaults are refreshed,
+   anything you edited or created is kept, and a full copy of your old data is saved first. */
+function migrate5(s, d, notes){
+  const st = s.settings = s.settings || {};
+  for(const k of Object.keys(d.settings)) if(st[k]===undefined) st[k] = d.settings[k];
+
+  // pickup days now follow your "pickup days" setting unless you toggled a specific day
+  const tk = todayKey();
+  for(const k of Object.keys(s.days||{})) if(k>=tk && s.days[k]) delete s.days[k].pickup;
+
+  // schedule blocks
+  const saved = s.blocks || [];
+  const oldById = {}; OLD_BLOCKS.forEach(b=>oldById[b.id]=b);
+  const savedIds = new Set(saved.map(b=>b.id));
+  const out = [];
+  for(const sb of saved){
+    const ob = oldById[sb.id];
+    if(ob && sigBlock(sb)===sigBlock(ob)) continue;          // untouched default → refreshed below
+    out.push(sb);                                            // edited or your own → kept as is
+    if(ob) notes.kept.push(sb.title);
+  }
+  const have = new Set(out.map(b=>b.id));
+  for(const nb of d.blocks){
+    if(have.has(nb.id)) continue;
+    if(oldById[nb.id] && !savedIds.has(nb.id)) continue;     // you had deleted this one on purpose
+    out.push(nb);
+  }
+  s.blocks = out;
+
+  // rotation notes (only the ones still at their original wording)
+  const r = s.rotations = s.rotations || {};
+  for(const kind of Object.keys(d.rotations)){
+    r[kind] = r[kind] || {};
+    for(const wd of Object.keys(d.rotations[kind])){
+      const cur = r[kind][wd], old = (OLD_ROT[kind]||{})[wd];
+      if(cur===undefined || cur===old) r[kind][wd] = d.rotations[kind][wd];
+    }
+  }
+
+  // skincare — replaced only if you hadn't changed the original steps
+  const same = (arr, old) => (arr||[]).length===old.length && arr.every((x,i)=>x.text===old[i] && (x.days||[]).length===7);
+  if(!s.skincare) s.skincare = d.skincare;
+  else for(const part of ["AM","PM"]){
+    if(same(s.skincare[part], OLD_SKIN[part])) s.skincare[part] = d.skincare[part];
+    else notes.kept.push("Skincare "+(part==="AM"?"morning":"evening")+" steps");
+  }
+
+  // supplements — add what's missing, never remove
+  s.supplements = s.supplements || [];
+  for(const nsup of d.supplements){
+    const key = nsup.name.split(" ")[0].toLowerCase();
+    if(!s.supplements.some(x=>(x.name||"").toLowerCase().includes(key))) s.supplements.push(nsup);
+  }
+
+  // recipes + meal plan
+  s.recipes = s.recipes || [];
+  const rids = new Set(s.recipes.map(x=>x.id));
+  for(const rc of seedRecipes()) if(!rids.has(rc.id)) s.recipes.push(rc);
+  const planned = Object.values(s.mealPlan||{}).some(day=>Object.values(day||{}).some(sl=>sl && (sl.family||sl.sophia)));
+  if(!planned) s.mealPlan = seedPlan("B");
+
+  notes.items = [
+    "Mornings rebuilt around waking early, a belly check, journal + affirmation and meditation",
+    "Sofia pickup is now 3:15 (home by 4) and only on your pickup days — Mon and Thu to start",
+    "New Health tab: your rebuild plan, workouts, gut log and weekly check-in",
+    "New Affirmations calendar inside the Mind tab (November and December filled in)",
+    "Meals now hold your rebuild-plan recipes, macros, a rotation and per-recipe grocery lists",
+    "Skincare steps updated, and every section is editable — start with More → Edit a day"
+  ];
+}
 
 function load(){
   const d = defaults();
+  let raw = null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){}
+  if(!raw){ state = d; return; }
   try{
-    const raw = localStorage.getItem(KEY);
-    if(!raw){ state = d; return; }
     const s = JSON.parse(raw);
     // migrations for data saved by older versions
     if(!s.skincare && s.settings){
       const mk = a => (a||[]).map(t=>({id:sid(),text:t,days:[...ALLDAYS]}));
-      s.skincare = {AM:mk(s.settings.skincareAM||d.settings.skincareAM), PM:mk(s.settings.skincarePM||d.settings.skincarePM)};
+      s.skincare = {AM:mk(s.settings.skincareAM||OLD_SKIN.AM), PM:mk(s.settings.skincarePM||OLD_SKIN.PM)};
     }
     if((s.rev||0) < 2){
       for(const sup of (s.supplements||[])) if(!sup.days) sup.days = [...ALLDAYS];
@@ -308,7 +598,6 @@ function load(){
       s.rev = 3;
     }
     if((s.rev||0) < 4){
-      // old mealPlan: weekday -> recipeId (dinner only). New: weekday -> {mealType: {family,sophia,same}}
       const oldPlan = s.mealPlan || {};
       const newPlan = {};
       for(const wd of Object.keys(oldPlan)){
@@ -320,16 +609,28 @@ function load(){
         if(b.type==="dinner"){ b.type="meals"; b.mealType="Dinner"; }
         if(b.type==="meals" && !b.mealType) b.mealType = "Dinner";
       }
+      const dn = (s.blocks||[]).find(b=>b.id==="dinner");
+      if(dn && dn.type==="simple"){ dn.type = "meals"; dn.mealType = "Dinner"; }
       s.rev = 4;
     }
+    if((s.rev||0) < 5){
+      const notes = {items:[],kept:[],noBackup:false};
+      try{ localStorage.setItem(KEY+"-backup-rev4", raw); }catch(e){ notes.noBackup = true; }
+      migrate5(s, d, notes);
+      s.rev = 5;
+      s.whatsNew = {ts:Date.now(), items:notes.items, kept:notes.kept, noBackup:notes.noBackup};
+    }
     for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
-    for(const k of Object.keys(d.settings)) if(!s.settings[k]) s.settings[k] = d.settings[k];
-    const dinner = (s.blocks||[]).find(b=>b.id==="dinner");
-    if(dinner && dinner.type==="simple"){ dinner.type = "meals"; dinner.mealType = "Dinner"; }
+    for(const k of Object.keys(d.settings)) if(s.settings[k]===undefined) s.settings[k] = d.settings[k];
     state = s;
-  }catch(e){ state = d; }
+    save();
+  }catch(e){
+    // Could not read or upgrade your saved data: work from a blank copy but NEVER write over what's stored.
+    console.error(e); state = d; ui.loadError = true;
+  }
 }
 function save(){
+  if(ui.loadError) return;
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }
   catch(e){ alert("Storage is full — try removing a recipe photo or two, then save again."); }
 }
@@ -357,19 +658,32 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
 
 function dayMeta(k){
-  if(!state.days[k]) state.days[k] = {pickup:true, checks:{}, roll:0};
+  if(!state.days[k]) state.days[k] = {checks:{}, roll:0};
   if(!state.days[k].checks) state.days[k].checks = {};
   return state.days[k];
+}
+function wdOf(k){ const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d).getDay(); }
+function daysBetween(a,b){
+  const [y1,m1,d1]=a.split("-").map(Number), [y2,m2,d2]=b.split("-").map(Number);
+  return Math.round((Date.UTC(y2,m2-1,d2)-Date.UTC(y1,m1-1,d1))/86400000);
+}
+function mondayOf(k){ return addDaysKey(k, -((wdOf(k)+6)%7)); }
+function toMin(t){ const [h,m]=String(t||"0:0").split(":").map(Number); return h*60+(m||0); }
+function peekChecks(k){ const m=state.days[k]; return (m&&m.checks)||{}; }
+/* pickup: follows your "pickup days" setting unless you toggled that specific date */
+function pickupFor(k){
+  const m = dayMeta(k);
+  if(m.pickup !== undefined) return !!m.pickup;
+  return (state.settings.pickupDays||[]).includes(wdOf(k));
 }
 
 /* ---------- today's schedule ---------- */
 function blocksFor(k){
-  const [y,m,d] = k.split("-").map(Number);
-  const wd = new Date(y,m-1,d).getDay();
-  const meta = dayMeta(k);
+  const wd = wdOf(k);
+  const pu = pickupFor(k);
   return state.blocks
     .filter(b => (b.days||[]).includes(wd))
-    .filter(b => b.pickup==="any" || (b.pickup==="only" && meta.pickup) || (b.pickup==="not" && !meta.pickup))
+    .filter(b => b.pickup==="any" || (b.pickup==="only" && pu) || (b.pickup==="not" && !pu))
     .slice()
     .sort((a,b)=> a.start.localeCompare(b.start));
 }
@@ -393,8 +707,10 @@ function sophiaPicks(k){
 /* ================= RENDER ================= */
 function render(){
   const app = document.getElementById("app");
-  const views = {today:vToday, journal:vJournal, gym:vGym, meals:vMeals, sophia:vSophia, more:vMore};
-  app.innerHTML = (views[ui.tab]||vToday)();
+  const views = {today:vToday, journal:vMind, gym:vHealth, meals:vMeals, sophia:vSofia, more:vMore};
+  let h = (views[ui.tab]||vToday)();
+  if(ui.loadError) h = `<div class="notice" style="background:var(--bad);color:#fff"><b>Clearday couldn't read your saved data.</b> Nothing has been overwritten — close and reopen the app. If this keeps happening, tell Claude.</div>` + h;
+  app.innerHTML = h;
   renderNav();
 }
 const ICONS = {
@@ -406,7 +722,7 @@ const ICONS = {
   more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>'
 };
 function renderNav(){
-  const tabs = [["today","Today"],["journal","Journal"],["gym","Gym"],["meals","Meals"],["sophia","Sophia"],["more","More"]];
+  const tabs = [["today","Today"],["journal","Mind"],["gym","Health"],["meals","Meals"],["sophia","Sofia"],["more","More"]];
   document.getElementById("nav").innerHTML = tabs.map(([t,l])=>
     `<button class="${ui.tab===t?"on":""}" onclick="setTab('${t}')" aria-label="${l}">${ICONS[t]}<span>${l}</span></button>`
   ).join("");
@@ -422,6 +738,7 @@ function vToday(){
   const wd = viewDate.getDay();
   const now = new Date();
   const meta = dayMeta(k);
+  const pu = pickupFor(k);
   const blocks = blocksFor(k);
   const doneCount = blocks.filter(b=>meta.checks[b.id]).length;
   const pct = blocks.length ? Math.round(doneCount/blocks.length*100) : 0;
@@ -437,7 +754,7 @@ function vToday(){
   const isWkday = wd>=1 && wd<=5;
 
   // week strip: Mon–Sun of the viewed week
-  const monday = addDaysKey(k, -((wd+6)%7));
+  const monday = mondayOf(k);
   let strip = `<div class="weekstrip"><button class="wknav" onclick="setDay('${addDaysKey(k,-7)}')" aria-label="Previous week">‹</button>`;
   for(let i=0;i<7;i++){
     const dk = addDaysKey(monday,i);
@@ -447,7 +764,9 @@ function vToday(){
   }
   strip += `<button class="wknav" onclick="setDay('${addDaysKey(k,7)}')" aria-label="Next week">›</button></div>`;
 
-  let h = `
+  let h = "";
+  if(isToday && state.whatsNew) h += whatsNewCard();
+  h += `
   <header style="margin-bottom:14px">
     <p class="sub" style="margin:0">${isToday
       ? `${greet}, ${esc(state.settings.name)}. Today is handled — just follow the list.`
@@ -455,8 +774,11 @@ function vToday(){
     <h1>${viewDate.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</h1>
     ${strip}
     <div class="row wrapover" style="margin-top:10px">
-      ${isWkday?`<button class="chip ${meta.pickup?"on":""}" onclick="togglePickup()">${meta.pickup?"✓ Pickup day — free until 11:30":"No pickup — free until 12:30"}</button>`:""}
+      ${isWkday?`<button class="chip ${pu?"on":""}" onclick="togglePickup()">${pu?"✓ Picking Sofia up — leave 3:15":"No pickup today"}</button>`:""}
       <span class="chip">${doneCount}/${blocks.length} done</span>
+      <span class="chip">💧 ${meta.water||0}/100 oz</span>
+      <button class="chip" onclick="addWater(10)" aria-label="Add 10 ounces of water">+10</button>
+      <button class="chip" onclick="addWater(-10)" aria-label="Remove 10 ounces of water">−</button>
       ${isToday?"":`<button class="chip" onclick="setDay('${todayKey()}')">↩ Back to today</button>`}
     </div>
     <div class="progressbar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="width:${pct}%"></div></div>
@@ -464,6 +786,7 @@ function vToday(){
   <ul class="tl">`;
 
   for(const b of blocks){
+    if(ui.editBlock===b.id){ h += `<li>${blockEditor(b, wd)}</li>`; continue; }
     const done = !!meta.checks[b.id];
     const cat = CATS[b.cat] || CATS.self;
     h += `<li><div class="block ${done?"done":""} ${b.id===nowId&&!done?"now":""}" style="--bcat:var(${cat.v})">
@@ -472,10 +795,12 @@ function vToday(){
         <div class="title">${esc(b.title)}</div>
         ${blockBody(b, k, wd)}
       </div>
+      <button class="editbtn" onclick="ui.editBlock='${b.id}';render()" aria-label="Edit ${esc(b.title)}">✎</button>
       <button class="checkbtn ${done?"on":""}" onclick="toggleCheck('${b.id}')" aria-label="Mark ${esc(b.title)} ${done?"not done":"done"}">✓</button>
     </div></li>`;
   }
   h += `</ul>`;
+  h += `<button class="ghost" style="width:100%;margin-bottom:12px" onclick="addBlock(${wd})">+ Add a block to ${FULLDAY[wd]}</button>`;
 
   if(isToday && extras.length){
     h += `<h2>Also today</h2><div class="card">` + extras.map(d=>`
@@ -485,10 +810,25 @@ function vToday(){
     <input id="quickadd" placeholder="Remembered something? Drop it here…" onkeydown="if(event.key==='Enter')quickAdd()">
     <button class="primary" onclick="quickAdd()" style="flex:none">Add</button>
   </div>
-  <p class="tiny" style="text-align:center">Times, blocks and rotations are all editable in <b>More</b>.</p>`;
+  <p class="tiny" style="text-align:center">Tap ✎ on any block to change it. Bigger changes live in <b>More → Edit a day</b>.</p>`;
   return h;
 }
-function setDay(k){ ui.viewDate = (k===todayKey()) ? null : k; render(); window.scrollTo(0,0); }
+function setDay(k){ ui.viewDate = (k===todayKey()) ? null : k; ui.editBlock=null; render(); window.scrollTo(0,0); }
+
+function whatsNewCard(){
+  const w = state.whatsNew;
+  return `<div class="card whatsnew"><div class="spread"><h3>Clearday just got updated</h3>
+    <button class="small ghost" onclick="dismissNew()" aria-label="Dismiss">Got it</button></div>
+    <ul class="plainlist">${(w.items||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+    <p class="tiny"><b>Everything you'd already logged is still here.</b>${w.kept&&w.kept.length?` Things you'd customized were left exactly as you had them: ${esc(w.kept.join(", "))}.`:""}
+    ${w.noBackup?"":` A full copy of your data from before the update is saved — see More → Your data to go back.`}</p></div>`;
+}
+function dismissNew(){ state.whatsNew=null; commit(); }
+
+function affLine(k){
+  const a = affFor(k);
+  return `<div class="affmini"><div class="affq">${esc(a.a)}</div><div class="tiny">Manifesting: ${esc(a.m)}</div></div>`;
+}
 
 function blockBody(b, k, wd){
   const meta = dayMeta(k);
@@ -506,10 +846,33 @@ function blockBody(b, k, wd){
   }
   if(b.type==="supps-am") h += suppChecks(k,"AM");
   if(b.type==="supps-pm") h += suppChecks(k,"PM");
+  if(b.type==="wake"){
+    const w = meta.wake||"";
+    h += `<div class="row" style="margin-top:8px"><label style="margin:0;flex:none">I woke at</label>
+      <input type="time" value="${w}" style="width:130px" onchange="setWake('${b.id}',this.value)" aria-label="Wake time"></div>`;
+    if(w){
+      const diff = toMin(w)-toMin(b.start);
+      h += `<div class="tiny" style="margin-top:4px">${diff<=0?"On target ✓":diff+" min after target — that's okay, you're logging it."}</div>`;
+    }
+  }
+  if(b.type==="gut-am" || b.type==="gut-pm"){
+    const f = b.type==="gut-am" ? "bloatAM" : "bloatPM";
+    const v = meta[f]||0;
+    h += `<div class="scale">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${v===n?"on":""}" onclick="setBloat('${b.id}','${f}',${n})" aria-label="Bloat ${n}">${n}</button>`).join("")}</div>
+      <div class="tiny" style="margin-top:4px">1 flat · 5 snug waistband · 10 painful. Foods and symptoms go in <a href="#" onclick="openHealth('gut');return false">Health → Gut</a>.</div>`;
+  }
+  if(b.type==="checkin"){
+    h += `<div class="linkrow"><a href="#" onclick="openHealth('checkin');return false">Log weight + waist →</a></div>`;
+  }
   if(b.type==="journal"){
     const j = state.journal[k]||{};
     const filled = ["affirmation","manifestation","g1","g2","g3","win","intention"].filter(f=>j[f]&&j[f].trim()).length;
-    h += `<div class="linkrow"><a href="#" onclick="setTab('journal');return false">Open journal → ${filled?filled+"/7 done":"prompts ready"}</a></div>`;
+    h += affLine(k);
+    h += `<div class="linkrow"><a href="#" onclick="openMind('journal');return false">Open journal → ${filled?filled+"/7 done":"prompts ready"}</a><a href="#" onclick="openMind('affirm');return false">Affirmation calendar →</a></div>`;
+  }
+  if(b.type==="affirm"){
+    h += affLine(k);
+    h += `<div class="linkrow"><a href="#" onclick="openMind('affirm');return false">Open the calendar →</a></div>`;
   }
   if(b.type==="links"){
     const ls = state.links.filter(l=>!l.days || l.days.includes(wd));
@@ -518,7 +881,16 @@ function blockBody(b, k, wd){
       : `<div class="tiny">No links set for this day — add some in More → Meditation links.</div>`;
   }
   if(b.type==="gym"){
-    h += `<div class="linkrow"><a href="#" onclick="setTab('gym');return false">Open gym log →</a></div>`;
+    h += `<div class="linkrow"><a href="#" onclick="openHealth('workouts');return false">Open workout log →</a></div>`;
+  }
+  if(b.type==="bag"){
+    const nwd = (wd+1)%7;
+    const day = state.mealPlan[nwd]||{};
+    const slot = day.Dinner || day.Lunch;
+    const r = slot && state.recipes.find(x=>x.id===slot.family);
+    h += r
+      ? `<div class="mini"><b>${esc(r.name)}</b>${r.prep?`<div style="margin-top:4px">${esc(r.prep)}</div>`:`<div class="tiny">No bagging notes saved for this recipe.</div>`}</div>`
+      : `<div class="linkrow"><a href="#" onclick="setTab('meals');return false">Nothing planned for tomorrow — open Meals →</a></div>`;
   }
   if(b.type==="meals"){
     const types = (b.mealType && b.mealType!=="Any") ? [b.mealType] : MEALTYPES;
@@ -533,7 +905,7 @@ function blockBody(b, k, wd){
       }else{
         const sop = state.recipes.find(x=>x.id===slot.sophia);
         if(fam) inner += mealLine(prefix+"Us", fam);
-        if(sop) inner += mealLine(prefix+"Sophia", sop);
+        if(sop) inner += mealLine(prefix+"Sofia", sop);
       }
     }
     h += inner
@@ -542,14 +914,13 @@ function blockBody(b, k, wd){
   }
   if(b.type==="sophia"){
     const picks = sophiaPicks(k);
-    const p0 = picks[0]?picks[0].title:"Free play";
-    const p1 = picks[1]?picks[1].title:"Free play";
-    h += `<div class="mini">
-      <div class="mrow"><span>2:30</span><span>${esc(p0)}</span></div>
-      <div class="mrow"><span>3:00</span><span>Snack + books on the couch</span></div>
-      <div class="mrow"><span>3:30</span><span>${esc(p1)}</span></div>
-      <div class="mrow"><span>4:00</span><span>Outside time or big movement</span></div>
-      <div class="mrow"><span>4:30</span><span>Independent play while you start dinner</span></div>
+    const rows = (state.settings.sofiaPlan||[]).map(p=>{
+      let t = p.text;
+      if(p.kind==="act1") t = picks[0]?picks[0].title:"Free play";
+      if(p.kind==="act2") t = picks[1]?picks[1].title:"Free play";
+      return `<div class="mrow"><span>${esc(p.time)}</span><span>${esc(t)}</span></div>`;
+    }).join("");
+    h += `<div class="mini">${rows}
       <div class="linkrow"><a href="#" onclick="rerollSophia();return false">↻ Different activities</a><a href="#" onclick="setTab('sophia');return false">Idea bank →</a></div>
     </div>`;
   }
@@ -557,8 +928,7 @@ function blockBody(b, k, wd){
 }
 function suppChecks(k, time){
   const meta = dayMeta(k);
-  const [y,m,d] = k.split("-").map(Number);
-  const wd = new Date(y,m-1,d).getDay();
+  const wd = wdOf(k);
   const list = state.supplements.filter(s=>s.time===time && (!s.days || s.days.includes(wd)));
   if(!list.length) return "";
   return `<div class="subchecks">` + list.map(s=>{
@@ -567,8 +937,18 @@ function suppChecks(k, time){
   }).join("") + `</div>`;
 }
 function toggleCheck(id){ const m=dayMeta(viewKey()); m.checks[id]=!m.checks[id]; commit(); }
-function togglePickup(){ const m=dayMeta(viewKey()); m.pickup=!m.pickup; commit(); }
+function togglePickup(){ const k=viewKey(); const m=dayMeta(k); m.pickup=!pickupFor(k); commit(); }
 function rerollSophia(k){ const m=dayMeta(k||viewKey()); m.roll=(m.roll||0)+1; commit(); }
+function addWater(n){ const m=dayMeta(viewKey()); m.water=Math.max(0,(m.water||0)+n); commit(); }
+function setWake(id,v){
+  const m=dayMeta(viewKey()); m.wake=v;
+  const b=state.blocks.find(x=>x.id===id);
+  if(v && b && toMin(v)<=toMin(b.start)) m.checks[id]=true;
+  commit();
+}
+function setBloat(id,f,n){ const m=dayMeta(viewKey()); m[f]=(m[f]===n?0:n); m.checks[id]=m[f]>0; commit(); }
+function openHealth(sub){ ui.tab="gym"; ui.healthSub=sub; render(); window.scrollTo(0,0); }
+function openMind(sub){ ui.tab="journal"; ui.mindSub=sub; render(); window.scrollTo(0,0); }
 function quickAdd(){
   const el=document.getElementById("quickadd");
   if(!el.value.trim()) return;
@@ -576,7 +956,7 @@ function quickAdd(){
   commit();
 }
 
-/* ---------- JOURNAL ---------- */
+/* ---------- MIND: journal + affirmations ---------- */
 const JFIELDS = [
   ["affirmation","One affirmation","I am…  (present tense, like it's already true)"],
   ["manifestation","One manifestation","What am I calling in? Write it like it's on its way."],
@@ -586,21 +966,227 @@ const JFIELDS = [
   ["win","A win from yesterday","Anything. Surviving the day is a win."],
   ["intention","How I want to go into today","One word or one sentence — calm? focused? playful?"]
 ];
+function jfields(){
+  const o = state.settings.jprompts || {};
+  return JFIELDS.map(([f,label,hint])=>[f, (o[f]&&o[f].label!==undefined)?o[f].label:label, (o[f]&&o[f].hint!==undefined)?o[f].hint:hint]);
+}
+
+/* ---- affirmation + manifestation calendar ---- */
+const MONTH_DEFAULTS = {
+  "2026-11":{theme:"Rebuild",s369:"I am confidently building a life of freedom, abundance, and joy for myself and my family.",
+    arcs:["Restart gently","Strong body","Calm gut, calm mind","Early mornings & gratitude","Finish proud"]},
+  "2026-12":{theme:"Proud",s369:"I am confidently building a life of freedom, abundance, and joy for myself and my family.",
+    arcs:["Momentum","Strong & steady","Gratitude & joy","Rest & celebrate","Finish the year proud"]}
+};
+const AFF_NOV = [
+  "I start where I am, and where I am is enough.",
+  "A restart is not a failure. It is a decision I get to make again.",
+  "My body is healing, and I give it what it needs without a fight.",
+  "I do the small thing today, and the small thing counts.",
+  "I trust my body to come back, one ordinary day at a time.",
+  "I am allowed to be a beginner again.",
+  "I rest on purpose and return on purpose.",
+  "I am rebuilding a body that is strong, capable, and mine.",
+  "Every walk, every rep, every stretch is a vote for the woman I am becoming.",
+  "I move because I respect my body, not to punish it.",
+  "My strength is coming back, and I can feel it.",
+  "I listen to my body and I still show up.",
+  "A short workout is still a workout. I keep my promise to myself.",
+  "I am patient with my back, my core, and my pace.",
+  "I treat my gut with patience and curiosity.",
+  "My body is learning what helps it, and I am paying attention.",
+  "I eat in peace, and my body digests in peace.",
+  "I am getting answers, and I keep asking until I do.",
+  "My mind is quiet, my breath is slow, my nervous system is safe.",
+  "I let my body soften, one exhale at a time.",
+  "I am not carrying everything. I set something down today.",
+  "I wake up easily and greet the morning with energy.",
+  "My mornings belong to me.",
+  "I rise a little earlier because it feels good, not because I have to.",
+  "I am grateful for a body that keeps showing up for me.",
+  "I am grateful, I am steady, and I protect my peace at every table.",
+  "I choose rest without guilt and effort without force.",
+  "I am proud of how I came back.",
+  "I finish November the way I started: gently, and on purpose.",
+  "I kept my promises to myself, and I am becoming someone who always does."
+];
+const AFF_DEC = [
+  "December starts with momentum I built myself.",
+  "I keep going without needing to be perfect.",
+  "My routines carry me, even on low-energy days.",
+  "I am consistent, and consistency is changing my life.",
+  "I protect my mornings and my mornings protect me.",
+  "I am stronger than I was in November.",
+  "I plan my week with calm, not dread.",
+  "My body responds to the care I give it.",
+  "I celebrate progress, not just the finish line.",
+  "I move with joy and finish what I start.",
+  "I have the energy for what matters most.",
+  "My gut and my mood are growing steadier.",
+  "I speak to myself the way I would speak to someone I love.",
+  "I am proud of my discipline and gentle with my limits.",
+  "I make room for joy, play, and silliness.",
+  "I am present with Sofia, and these moments are enough.",
+  "I enjoy my family without rushing toward the next thing.",
+  "Gratitude makes my life feel full.",
+  "I am grateful for the people who show up for me.",
+  "I let myself receive: help, rest, and good things.",
+  "The longest night is here, and my light is coming back.",
+  "I slow down and let the holidays be simple.",
+  "I do not have to do it all to make this season magical.",
+  "I am calm, warm, and present tonight.",
+  "I am grateful for this day, this family, and this home.",
+  "I rest deeply and recover fully.",
+  "I look back on this year with pride.",
+  "I honor how far I have come since the fall.",
+  "I finish this year proud, not depleted.",
+  "I choose what I carry into next year, and I leave the rest behind.",
+  "I end the year strong, healthy, and ready. I am proud of who I became."
+];
+const AFF_FALLBACK = [   // Sun … Sat, used for months that don't have their own calendar yet
+  "Rest is part of the plan, not a break from it.",
+  "I begin again as many times as I need to.",
+  "I move at a pace my body can trust.",
+  "Small steps count, and I take one today.",
+  "I am calm, capable, and growing.",
+  "I protect my energy and my peace.",
+  "I am proud of how far I have come."
+];
+const PILLARS = [   // Sun … Sat — what each weekday manifests (three wordings that rotate week to week)
+  {label:"Freedom & Portugal",v:["Our life in Portugal is taking shape — I can see the home, the light, and the slow mornings.","I am building the family's move to Portugal with clear plans and steady steps.","Freedom is already moving toward us: location-independent income, a calm home, time together."]},
+  {label:"Strong body",v:["My body is strong, lean, and energized, and I move every day with ease.","I am at my healthy weight, I love how my body feels, and my clothes fit beautifully.","My core is strong, my back is pain-free, and training feels good."]},
+  {label:"Calm gut",v:["My gut is calm and healthy, and my belly is flat and comfortable all day.","I know exactly what my body needs, and my digestion is easy and settled.","I wake up light, un-bloated, and clear-headed."]},
+  {label:"Early mornings",v:["I wake up early, rested and excited for my day.","My morning routine flows effortlessly and sets the tone for everything.","I sleep deeply, wake naturally, and feel energized before 7 a.m."]},
+  {label:"Peace of mind",v:["My mind is calm and my nervous system is steady, even on busy days.","I feel safe, supported, and at peace in my own life.","I am confident, joyful, and fully myself again."]},
+  {label:"Income & work",v:["My independent income grows every month and replaces my 9-to-5.","My side projects bring in consistent income, and I take aligned action every week.","I am respected and well paid for my skills, and my work gives me freedom."]},
+  {label:"Family & joy",v:["Our home is full of laughter, connection, and easy weekends.","I am a present, joyful mom and partner, and we make beautiful memories together.","I make time for play, hobbies, and the fun parts of me, and I enjoy them without guilt."]}
+];
+function ymOf(k){ return k.slice(0,7); }
+function weekIdx(k){ return Math.floor((+k.split("-")[2]-1)/7); }
+function defaultAff(k){
+  const ym = ymOf(k), day = +k.split("-")[2], wd = wdOf(k);
+  const list = ym==="2026-11" ? AFF_NOV : ym==="2026-12" ? AFF_DEC : null;
+  const P = PILLARS[wd];
+  return {a:list?list[day-1]:AFF_FALLBACK[wd], m:P.v[weekIdx(k)%3], pillar:P.label};
+}
+function affFor(k){
+  const o = (state.affirm.days||{})[k] || {};
+  const b = defaultAff(k);
+  return {a:o.a!==undefined?o.a:b.a, m:o.m!==undefined?o.m:b.m, pillar:b.pillar, custom:o.a!==undefined||o.m!==undefined};
+}
+function monthMeta(ym){
+  const base = MONTH_DEFAULTS[ym] || {theme:"",s369:"I am confidently building a life of freedom, abundance, and joy for myself and my family.",arcs:[]};
+  const o = (state.affirm.months||{})[ym] || {};
+  return {theme:o.theme!==undefined?o.theme:base.theme, s369:o.s369!==undefined?o.s369:base.s369, arcs:base.arcs};
+}
+function setMonthField(ym,f,el){
+  state.affirm.months[ym] = state.affirm.months[ym] || {};
+  state.affirm.months[ym][f] = el.value; save();
+}
+function affNav(n){
+  const ym = ui.affMonth || ymOf(todayKey());
+  const [Y,M] = ym.split("-").map(Number);
+  const d = new Date(Y, M-1+n, 1);
+  ui.affMonth = d.getFullYear()+"-"+pad(d.getMonth()+1); ui.affDay = null; ui.editAff = false; render();
+}
+function pickAffDay(k){ ui.affDay = k; ui.editAff = false; render(); }
+function toggleAffDone(k){ state.affirm.done[k] = !state.affirm.done[k]; commit(); }
+function saveAff(k){
+  const a = document.getElementById("aff-a").value.trim(), m = document.getElementById("aff-m").value.trim();
+  const b = defaultAff(k);
+  state.affirm.days[k] = {a:a||b.a, m:m||b.m};
+  ui.editAff = false; commit();
+}
+function resetAff(k){ delete state.affirm.days[k]; ui.editAff = false; commit(); }
+function useAffInJournal(){
+  const k = todayKey(), a = affFor(k);
+  const j = state.journal[k] || (state.journal[k] = {});
+  if(!j.affirmation || !j.affirmation.trim()) j.affirmation = a.a;
+  if(!j.manifestation || !j.manifestation.trim()) j.manifestation = a.m;
+  ui.mindSub = "journal"; commit();
+}
+
+function vMind(){
+  const seg = `<div class="seg" role="tablist">
+    <button class="${ui.mindSub==="journal"?"on":""}" onclick="ui.mindSub='journal';render()">Journal</button>
+    <button class="${ui.mindSub==="affirm"?"on":""}" onclick="ui.mindSub='affirm';render()">Affirmations</button></div>`;
+  return `<h1>Mind</h1>` + seg + (ui.mindSub==="affirm" ? vAffirm() : vJournal());
+}
+
+function vAffirm(){
+  const tk = todayKey();
+  const ym = ui.affMonth || ymOf(tk);
+  const [Y,M] = ym.split("-").map(Number);
+  const mm = monthMeta(ym);
+  const nDays = new Date(Y,M,0).getDate();
+  const lead = new Date(Y,M-1,1).getDay();
+  const sel = (ui.affDay && ymOf(ui.affDay)===ym) ? ui.affDay : (ymOf(tk)===ym ? tk : ym+"-01");
+  const a = affFor(sel);
+  const monthName = new Date(Y,M-1,1).toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const arc = mm.arcs[weekIdx(sel)] || "";
+
+  let h = `<p class="sub">One affirmation to believe and one thing you're manifesting, every day. Tap any day, or edit it to fit you.</p>
+  <div class="spread" style="margin:6px 0 10px"><button class="small" onclick="affNav(-1)" aria-label="Previous month">‹</button>
+    <h3>${monthName}${mm.theme?` · ${esc(mm.theme)}`:""}</h3>
+    <button class="small" onclick="affNav(1)" aria-label="Next month">›</button></div>`;
+
+  h += `<div class="card affcard">
+    <div class="tiny" style="text-transform:uppercase;letter-spacing:.06em">${sel===tk?"Today":fmtDateShort(sel)}${arc?` · ${esc(arc)}`:""} · ${esc(a.pillar)}</div>`;
+  if(ui.editAff){
+    h += `<div class="field" style="margin-top:10px"><label for="aff-a">Affirmation</label><textarea id="aff-a" rows="2">${esc(a.a)}</textarea></div>
+      <div class="field"><label for="aff-m">Manifesting</label><textarea id="aff-m" rows="3">${esc(a.m)}</textarea></div>
+      <div class="row wrapover"><button class="primary" onclick="saveAff('${sel}')">Save</button>
+      <button class="ghost" onclick="ui.editAff=false;render()">Cancel</button>
+      ${a.custom?`<button class="small danger" style="margin-left:auto" onclick="resetAff('${sel}')">Back to original</button>`:""}</div>`;
+  }else{
+    h += `<div class="affq big">${esc(a.a)}</div>
+      <div class="tiny" style="margin-top:12px;text-transform:uppercase;letter-spacing:.06em">I am manifesting</div>
+      <div class="affm">${esc(a.m)}</div>
+      <div class="row wrapover" style="margin-top:12px">
+        <button class="chip ${state.affirm.done[sel]?"on":""}" onclick="toggleAffDone('${sel}')">${state.affirm.done[sel]?"✓ Said it / wrote it":"Mark as said / written"}</button>
+        ${sel===tk?`<button class="chip" onclick="useAffInJournal()">Put in today's journal</button>`:""}
+        <button class="chip" onclick="ui.editAff=true;render()">✎ Edit${a.custom?" (edited)":""}</button>
+      </div>`;
+  }
+  h += `</div>`;
+
+  // calendar grid
+  h += `<div class="cal" role="grid" aria-label="${monthName}">` + ["S","M","T","W","T","F","S"].map(d=>`<div class="calh">${d}</div>`).join("");
+  for(let i=0;i<lead;i++) h += `<div></div>`;
+  for(let d=1; d<=nDays; d++){
+    const k = ym+"-"+pad(d);
+    h += `<button class="calday ${k===sel?"sel":""} ${k===tk?"tod":""} ${state.affirm.done[k]?"done":""}" onclick="pickAffDay('${k}')" aria-label="${fmtDateShort(k)}">${d}</button>`;
+  }
+  h += `</div><p class="tiny" style="margin-top:6px">Filled dot = said or written.</p>`;
+
+  // month settings
+  h += `<h2>This month</h2><div class="card">
+    <div class="field"><label for="mth">Monthly theme</label><input id="mth" value="${esc(mm.theme)}" placeholder="e.g. Rebuild" onchange="setMonthField('${ym}','theme',this)"></div>
+    <div class="field" style="margin:0"><label for="m369">Your 369 statement (3× morning · 6× midday · 9× night)</label>
+      <textarea id="m369" rows="2" onchange="setMonthField('${ym}','s369',this)">${esc(mm.s369)}</textarea></div></div>`;
+  if(!MONTH_DEFAULTS[ym]) h += `<p class="tiny">This month has simple placeholder affirmations. Edit any day, or ask Claude to write a full month to match your goals.</p>`;
+  return h;
+}
+
 function vJournal(){
   const k = todayKey();
   const j = state.journal[k] || (state.journal[k]={});
   const yk = yesterdayKey();
   const yj = state.journal[yk];
   const streak = journalStreak();
-  let h = `<h1>Journal</h1>
-  <p class="sub">${fmtDateShort(k)}${streak>1?` · <b>${streak}-day streak</b> 🔥`:""}</p>`;
+  const a = affFor(k);
+  let h = `<p class="sub">${fmtDateShort(k)}${streak>1?` · <b>${streak}-day streak</b> 🔥`:""}</p>`;
+  h += `<div class="card affcard"><div class="tiny" style="text-transform:uppercase;letter-spacing:.06em">Today's affirmation</div>
+    <div class="affq">${esc(a.a)}</div><div class="tiny" style="margin-top:6px">Manifesting: ${esc(a.m)}</div>
+    <div class="row wrapover" style="margin-top:8px"><button class="chip" onclick="useAffInJournal()">Use these in my journal</button>
+    <button class="chip" onclick="ui.mindSub='affirm';render()">Open calendar</button></div></div>`;
   if(yj && yj.intention) h += `<div class="notice">Yesterday you wanted to be: <b>${esc(yj.intention)}</b></div>`;
-  h += `<div class="card">` + JFIELDS.map(([f,label,hint])=>`
-    <div class="field"><label for="jf-${f}">${label}</label>
+  h += `<div class="card">` + jfields().map(([f,label,hint])=>`
+    <div class="field"><label for="jf-${f}">${esc(label)}</label>
     <textarea id="jf-${f}" rows="${f.startsWith("g")?1:2}" placeholder="${esc(hint)}" onchange="saveJ('${f}',this)">${esc(j[f]||"")}</textarea></div>`).join("")
   + `<div class="field"><label for="jf-notes">Anything else on your mind (optional brain-clear)</label>
      <textarea id="jf-notes" rows="3" placeholder="Dump it here so it stops looping." onchange="saveJ('notes',this)">${esc(j.notes||"")}</textarea></div>
-  <p class="tiny">Saves automatically when you tap away from a box.</p></div>`;
+  <p class="tiny">Saves automatically when you tap away from a box. Change the prompts in More → Journal prompts.</p></div>`;
 
   const jwd = new Date().getDay();
   h += `<h2>Listen while you write</h2><div class="card"><div class="linkrow">`
@@ -614,7 +1200,7 @@ function vJournal(){
     h += show.map(x=>{
       const e = state.journal[x];
       return `<details><summary>${fmtDateShort(x)}</summary><div style="margin-top:8px">`
-        + JFIELDS.map(([f,label])=> e[f]?`<p><span class="tiny">${label}</span><br>${esc(e[f])}</p>`:"").join("")
+        + jfields().map(([f,label])=> e[f]?`<p><span class="tiny">${esc(label)}</span><br>${esc(e[f])}</p>`:"").join("")
         + (e.notes?`<p><span class="tiny">Notes</span><br>${esc(e.notes)}</p>`:"")
         + `</div></details>`;
     }).join("");
@@ -631,9 +1217,204 @@ function journalStreak(){
   return n;
 }
 
+/* ---------- HEALTH: plan · workouts · gut · check-in ---------- */
+function vHealth(){
+  const subs = [["plan","Plan"],["workouts","Workouts"],["gut","Gut"],["checkin","Check-in"]];
+  const seg = `<div class="seg" role="tablist">` + subs.map(([id,l])=>
+    `<button class="${ui.healthSub===id?"on":""}" onclick="ui.healthSub='${id}';render()">${l}</button>`).join("") + `</div>`;
+  const body = ui.healthSub==="workouts" ? vGym() : ui.healthSub==="gut" ? vGut() : ui.healthSub==="checkin" ? vCheckin() : vPlan();
+  return `<h1>Health</h1>` + seg + body;
+}
+
+/* list editor used for priorities / non-negotiables / doctor questions */
+function listEditor(arrName, placeholder, addLabel){
+  const arr = arrName==="doctorQs" ? state.doctorQs : state.settings[arrName];
+  return arr.map(x=>`<div class="listitem">
+      <input value="${esc(x.text)}" onchange="updList('${arrName}','${x.id}',this)" aria-label="${esc(placeholder)}">
+      <button class="small ghost" onclick="delList('${arrName}','${x.id}')" aria-label="Delete">✕</button></div>`).join("")
+    + `<div class="row" style="margin-top:8px"><input id="add-${arrName}" placeholder="${esc(placeholder)}" onkeydown="if(event.key==='Enter')addList('${arrName}')">
+       <button class="small" style="flex:none" onclick="addList('${arrName}')">${addLabel||"Add"}</button></div>`;
+}
+function listRef(name){ return name==="doctorQs" ? state.doctorQs : state.settings[name]; }
+function updList(name,id,el){ const x=listRef(name).find(i=>i.id===id); if(x){ x.text=el.value; save(); } }
+function delList(name,id){
+  const arr = listRef(name).filter(i=>i.id!==id);
+  if(name==="doctorQs") state.doctorQs = arr; else state.settings[name] = arr;
+  commit();
+}
+function addList(name){
+  const el = document.getElementById("add-"+name);
+  if(!el || !el.value.trim()) return;
+  listRef(name).push({id:sid(),text:el.value.trim()});
+  commit();
+}
+
+function planWeek(){ return Math.floor(daysBetween(state.settings.planStart||"2026-11-02", todayKey())/7)+1; }
+function vPlan(){
+  const S = state.settings;
+  const w = planWeek();
+  const end = addDaysKey(S.planStart||"2026-11-02", 83);
+  let h = `<p class="sub">Your comeback, in one place: what matters this season, what you'll hold to, and how the week is going.</p>`;
+  h += `<div class="card"><div class="spread"><h3>${w<1?"Starts "+fmtDateShort(S.planStart):w<=12?"Week "+w+" of 12":"Past the 12 weeks — nicely done"}</h3>
+      <span class="tiny">${fmtDateShort(S.planStart)} → ${fmtDateShort(end)}</span></div>
+    <div class="progressbar"><div style="width:${Math.max(0,Math.min(100,Math.round((w-1)/12*100)))}%"></div></div>
+    <p class="tiny" style="margin-top:8px">Not a straight line — a restart counts, and the 10-minute minimum always counts.</p></div>`;
+
+  // this week scorecard
+  const mon = mondayOf(todayKey());
+  const habits = S.habitMap || [];
+  h += `<h2>This week</h2><div class="card">` + (habits.length ? habits.map(hb=>{
+    let cnt = 0, dots = "";
+    for(let i=0;i<7;i++){
+      const dk = addDaysKey(mon,i), c = peekChecks(dk);
+      const on = (hb.blockIds||[]).some(id=>c[id]);
+      if(on) cnt++;
+      dots += `<i class="dot ${on?"on":""} ${dk===todayKey()?"tod":""}"></i>`;
+    }
+    return `<div class="habit"><div class="grow"><b>${esc(hb.label)}</b></div><div class="dots">${dots}</div>
+      <span class="pill ${cnt>=hb.perWeek?"ok":""}" style="min-width:42px;text-align:center">${cnt}/${hb.perWeek}</span></div>`;
+  }).join("") : `<p class="tiny">Add something to track below.</p>`)
+  + `<p class="tiny" style="margin-top:8px">Counts come straight from what you tick off on Today — nothing extra to log. Mon → Sun.</p></div>`;
+
+  // priorities & non-negotiables
+  h += `<h2>What matters this season</h2><div class="card">${listEditor("priorities","Add a priority","Add")}</div>`;
+  h += `<h2>Non-negotiables</h2><div class="card">${listEditor("nonneg","Add a non-negotiable","Add")}
+    <div class="field" style="margin:12px 0 0"><label for="dropord">If the week falls apart</label>
+    <textarea id="dropord" rows="3" onchange="state.settings.dropOrder=this.value;save()">${esc(S.dropOrder||"")}</textarea></div></div>`;
+
+  // tracker setup
+  h += `<details><summary>Edit what the weekly scorecard counts</summary><div style="margin-top:10px">`
+    + habits.map(hb=>{
+      const firstId = (hb.blockIds||[]).find(id=>state.blocks.some(b=>b.id===id)) || "";
+      return `<div class="listitem" style="flex-wrap:wrap">
+        <input value="${esc(hb.label)}" onchange="updHabit('${hb.id}','label',this.value)" style="flex:2;min-width:130px" aria-label="Name">
+        <input type="number" min="1" max="7" value="${hb.perWeek}" onchange="updHabit('${hb.id}','perWeek',+this.value||1)" style="width:64px" aria-label="Times per week">
+        <button class="small ghost" onclick="delHabit('${hb.id}')" aria-label="Delete">✕</button>
+        <select onchange="setHabitBlock('${hb.id}',this.value)" style="width:100%" aria-label="Counts which Today item">
+          <option value="">Counts this Today item…</option>
+          ${uniqueBlocks().map(b=>`<option value="${b.id}" ${(hb.blockIds||[]).includes(b.id)&&firstId===b.id?"selected":""}>${esc(b.title)}</option>`).join("")}</select></div>`;
+    }).join("")
+    + `<button class="small" style="margin-top:8px" onclick="addHabit()">+ Add to scorecard</button></div></details>`;
+
+  // settings
+  h += `<h2>Plan settings</h2><div class="card">
+    <div class="row"><div class="field grow"><label for="pstart">Plan start (Week 1)</label>
+      <input id="pstart" type="date" value="${esc(S.planStart||"")}" onchange="state.settings.planStart=this.value;commit()"></div>
+    <div class="field grow"><label for="gw">Goal weight (lb)</label>
+      <input id="gw" inputmode="decimal" value="${esc(S.goalWeight||"")}" placeholder="optional" onchange="state.settings.goalWeight=this.value;save()"></div></div>
+    <p class="tiny">Your training days, wake time and everything else live on Today — tap ✎ on a block, or use More → Edit a day.</p></div>`;
+  return h;
+}
+function uniqueBlocks(){ const seen=new Set(); return state.blocks.slice().sort((a,b)=>a.start.localeCompare(b.start)).filter(b=>{ if(seen.has(b.title)) return false; seen.add(b.title); return true; }); }
+function updHabit(id,f,v){ const x=state.settings.habitMap.find(i=>i.id===id); if(x){ x[f]=v; commit(); } }
+function setHabitBlock(id,bid){ const x=state.settings.habitMap.find(i=>i.id===id); if(x && bid){ x.blockIds=[bid]; commit(); } }
+function delHabit(id){ state.settings.habitMap = state.settings.habitMap.filter(i=>i.id!==id); commit(); }
+function addHabit(){ state.settings.habitMap.push({id:sid(),label:"New habit",blockIds:[],perWeek:3}); commit(); }
+
+/* ---- gut ---- */
+function setBloatToday(f,n){
+  const k = todayKey(), m = dayMeta(k);
+  m[f] = (m[f]===n ? 0 : n);
+  const ids = f==="bloatAM" ? ["gut-am","wk-gut"] : ["gut-pm"];
+  for(const id of ids) if(state.blocks.some(b=>b.id===id)) m.checks[id] = m[f]>0;
+  commit();
+}
+function addGut(){
+  const t = document.getElementById("gut-text").value.trim();
+  if(!t) return;
+  const sc = +document.getElementById("gut-score").value || 0;
+  const now = new Date();
+  state.gutLog.push({id:sid(),date:todayKey(),time:pad(now.getHours())+":"+pad(now.getMinutes()),text:t,score:sc});
+  commit();
+}
+function delGut(id){ state.gutLog = state.gutLog.filter(x=>x.id!==id); commit(); }
+function vGut(){
+  const tk = todayKey(), m = dayMeta(tk);
+  const row = (label,f)=>`<div class="field"><label>${label}</label><div class="scale">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${m[f]===n?"on":""}" onclick="setBloatToday('${f}',${n})" aria-label="${label} ${n}">${n}</button>`).join("")}</div></div>`;
+  let h = `<p class="sub">Two taps a day, plus what you ate when something feels off. After a couple of weeks the pattern shows up on its own.</p>
+  <div class="card"><h3>How's the belly today?</h3>
+    ${row("On waking","bloatAM")}${row("Tonight","bloatPM")}
+    <p class="tiny">Score by waistband and comfort first: 1–2 flat and comfortable · 3–4 slightly rounded · 5–6 snug · 7–8 tight or hard · 9–10 painful.</p></div>`;
+
+  h += `<div class="card"><h3>Log a food or symptom</h3>
+    <div class="field" style="margin-top:8px"><input id="gut-text" placeholder="e.g. Greek yogurt at 2pm · gassy after dinner" onkeydown="if(event.key==='Enter')addGut()"></div>
+    <div class="row"><select id="gut-score" style="flex:1"><option value="0">How did the belly feel after?</option>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join("")}</select>
+    <button class="primary" onclick="addGut()" style="flex:none">Add</button></div></div>`;
+
+  const recent = state.gutLog.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,15);
+  if(recent.length){
+    h += `<div class="card">` + recent.map(x=>`<div class="listitem">
+      <span class="pill" style="background:var(--accent-soft);color:${x.score>=7?"var(--bad)":x.score>=5?"var(--warn)":"var(--good)"}">${x.score||"–"}</span>
+      <div class="grow">${esc(x.text)}<div class="tiny">${fmtDateShort(x.date)} · ${fmtTime(x.time)}</div></div>
+      <button class="small ghost" onclick="delGut('${x.id}')" aria-label="Delete">✕</button></div>`).join("") + `</div>`;
+  }
+
+  // 14-day view
+  let rows = "";
+  for(let i=0;i<14;i++){
+    const dk = addDaysKey(tk,-i), d = state.days[dk]||{};
+    if(!d.bloatAM && !d.bloatPM) continue;
+    rows += `<tr><td>${fmtDateShort(dk)}</td><td>${d.bloatAM||"–"}</td><td>${d.bloatPM||"–"}</td></tr>`;
+  }
+  if(rows) h += `<h2>Last two weeks</h2><div class="card scrollx"><table class="stats"><tr><th>Day</th><th>Waking</th><th>Evening</th></tr>${rows}</table></div>`;
+
+  // rough-day patterns
+  const tally = {};
+  for(const x of state.gutLog) if(x.score>=6){ const key=x.text.toLowerCase().trim(); tally[key]=(tally[key]||0)+1; }
+  const top = Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(top.length) h += `<h2>Logged on rough belly days (6+)</h2><div class="card">${top.map(([t,c])=>`<div class="listitem"><div class="grow">${esc(t)}</div><span class="pill" style="background:var(--accent-soft);color:var(--accent)">${c}×</span></div>`).join("")}
+    <p class="tiny">A pattern to bring to your doctor — not a diagnosis.</p></div>`;
+
+  h += `<h2>Questions for my doctor</h2><div class="card">${listEditor("doctorQs","Add a question or something to mention","Add")}</div>`;
+  return h;
+}
+
+/* ---- weekly check-in ---- */
+function addCheckin(){
+  const g = id=>document.getElementById(id).value;
+  const w = parseFloat(g("ci-w")), c = parseFloat(g("ci-c"));
+  if(isNaN(w) && isNaN(c)){ alert("Add a weight or a waist measurement first."); return; }
+  state.checkins.push({id:sid(),date:g("ci-d")||todayKey(),weight:isNaN(w)?null:w,waist:isNaN(c)?null:c,note:g("ci-n").trim()});
+  commit();
+}
+function delCheckin(id){ if(confirm("Delete this check-in?")){ state.checkins = state.checkins.filter(x=>x.id!==id); commit(); } }
+function vCheckin(){
+  const list = state.checkins.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const gw = parseFloat(state.settings.goalWeight);
+  let h = `<p class="sub">Once a week — fasted, same conditions. One bad number is noise; the trend is the story.</p>
+  <div class="card"><h3>New check-in</h3>
+    <div class="row wrapover" style="margin-top:8px">
+      <div class="field" style="flex:1;min-width:120px"><label for="ci-d">Date</label><input id="ci-d" type="date" value="${todayKey()}"></div>
+      <div class="field" style="flex:1;min-width:90px"><label for="ci-w">Weight (lb)</label><input id="ci-w" type="number" inputmode="decimal" step="0.1"></div>
+      <div class="field" style="flex:1;min-width:90px"><label for="ci-c">Waist (in)</label><input id="ci-c" type="number" inputmode="decimal" step="0.1"></div></div>
+    <div class="field"><label for="ci-n">Notes — energy, sleep, digestion, wins, what's coming up</label><textarea id="ci-n" rows="2"></textarea></div>
+    <button class="primary" onclick="addCheckin()">Save check-in</button></div>`;
+
+  const ws = list.filter(x=>x.weight!=null).map(x=>x.weight), cs = list.filter(x=>x.waist!=null).map(x=>x.waist);
+  if(ws.length>1) h += `<div class="card"><h3>Weight</h3>${spark(ws)}<p class="tiny">${ws[0]} → ${ws[ws.length-1]} lb${!isNaN(gw)?` · ${Math.abs(ws[ws.length-1]-gw).toFixed(1)} lb ${ws[ws.length-1]>gw?"to go":"past goal"}`:""}</p></div>`;
+  else if(ws.length===1 && !isNaN(gw)) h += `<div class="card"><h3>Weight</h3><p class="tiny">${ws[0]} lb now · goal ${gw} lb</p></div>`;
+  if(cs.length>1) h += `<div class="card"><h3>Waist</h3>${spark(cs)}<p class="tiny">${cs[0]} → ${cs[cs.length-1]} in</p></div>`;
+
+  // wake times
+  const wakes = [];
+  for(let i=0;i<7;i++){ const d = state.days[addDaysKey(todayKey(),-i)]; if(d && d.wake) wakes.push(toMin(d.wake)); }
+  if(wakes.length){
+    const avg = Math.round(wakes.reduce((a,b)=>a+b,0)/wakes.length);
+    h += `<div class="card"><h3>Wake time, last 7 days</h3><p>Average <b>${fmtTime(pad(Math.floor(avg/60))+":"+pad(avg%60))}</b> across ${wakes.length} logged day${wakes.length===1?"":"s"}.</p></div>`;
+  }
+
+  if(list.length) h += `<h2>History</h2>` + list.slice().reverse().map((x,i,arr)=>{
+    const prev = arr[i+1];
+    const dw = (prev && prev.weight!=null && x.weight!=null) ? (x.weight-prev.weight) : null;
+    return `<details><summary>${fmtDateShort(x.date)}${x.weight!=null?` · ${x.weight} lb`:""}${x.waist!=null?` · ${x.waist} in`:""}${dw!=null?` · ${dw>0?"+":""}${dw.toFixed(1)}`:""}</summary>
+      <div style="margin-top:8px">${x.note?`<p>${esc(x.note)}</p>`:`<p class="tiny">No note.</p>`}<button class="small danger" onclick="delCheckin('${x.id}')">Delete</button></div></details>`;
+  }).join("");
+  return h;
+}
+
 /* ---------- GYM ---------- */
 function vGym(){
-  let h = `<h1>Gym</h1><p class="sub">Log it once, then watch the numbers climb.</p>`;
+  let h = `<p class="sub">Log it once, then watch the numbers climb.</p>`;
   h += state.draft ? draftForm() :
     `<div class="card row"><div class="grow"><b>Ready to lift?</b><div class="tiny">Starts a log for today.</div></div>
      <button class="primary" onclick="newWorkout()" style="flex:none">Start workout</button></div>`;
@@ -764,72 +1545,168 @@ const FULLDAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Sa
 function tagEmoji(t){
   return {Dinner:"🍝",Lunch:"🥪",Breakfast:"🍳",Snack:"🍎",Dessert:"🍰","Prep-ahead":"🥡"}[t] || "🍽";
 }
+function macroTxt(r){ return (r && r.m && r.m.length===4) ? `${r.m[0]} cal · ${r.m[1]}P · ${r.m[2]}C · ${r.m[3]}F` : ""; }
 function mealLine(label, r){
   return `<div class="row" style="margin:4px 0">${r.img?`<img class="thumb" src="${r.img}" alt="">`:`<span class="thumb emj">${tagEmoji(r.tag)}</span>`}
-    <div class="grow"><b>${esc(label)}:</b> ${esc(r.name)}${r.url?` <a href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:.85rem">↗</a>`:""}</div></div>`;
+    <div class="grow"><b>${esc(label)}:</b> ${esc(r.name)}${r.url?` <a href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:.85rem">↗</a>`:""}
+    ${r.m?`<div class="tiny">${macroTxt(r)}${r.iron?" · iron-rich":""}</div>`:""}</div></div>`;
 }
 function recipeOptsFor(mt){
-  return state.recipes.slice().sort((a,b)=>(a.tag===mt?0:1)-(b.tag===mt?0:1) || a.name.localeCompare(b.name));
+  const match = r => r.tag===mt || (mt==="Lunch"&&r.tag==="Dinner") || (mt==="Dinner"&&r.tag==="Lunch");
+  return state.recipes.slice().sort((a,b)=>(match(a)?0:1)-(match(b)?0:1) || a.name.localeCompare(b.name));
 }
+function dayMacros(wd){
+  const t=[0,0,0,0]; let n=0; const ds = state.mealPlan[wd]||{};
+  for(const mt of MEALTYPES){
+    const sl = ds[mt]; const r = sl && state.recipes.find(x=>x.id===sl.family);
+    if(r && r.m && r.m.length===4){ for(let i=0;i<4;i++) t[i]+=r.m[i]; n++; }
+  }
+  return {t,n};
+}
+function pillFor(v,target,tol,unit){
+  const diff = Math.round(v-target), ok = Math.abs(diff)<=tol;
+  return `<span class="pill" style="background:var(--accent-soft);color:${ok?"var(--good)":"var(--warn)"}">${Math.round(v)}${unit||""}</span>`;
+}
+function fmtQty(q,u){
+  let v = Math.round(q*4)/4; if(v<0.25) v = 0.25;
+  return (v%1===0 ? String(v) : String(+v.toFixed(2))) + (u?" "+u:"");
+}
+function parseIng(txt){
+  return txt.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+    const m = l.match(/^(\d*\.?\d+(?:\/\d+)?)\s*(g|kg|oz|lbs?|cups?|tbsp|tsp|ml|l|each|scoops?|heads?|bunch(?:es)?|jars?|bottles?|cloves?|cans?|slices?)?\s+(.+)$/i);
+    if(m){ const q = m[1].includes("/") ? m[1].split("/").reduce((a,b)=>a/b) : parseFloat(m[1]); return {n:m[3].trim(), q, u:(m[2]||"")}; }
+    return {n:l, q:1, u:""};
+  });
+}
+function ingText(r){ return (r.ing||[]).map(i=>`${+(+i.q).toFixed(2)}${i.u?" "+i.u:""} ${i.n}`).join("\n"); }
+
+function groceryData(){
+  const start = todayKey(), n = ui.grocDays, per = {};
+  const sx = +state.settings.sx||1, sp = +state.settings.sofiaPortion||0.5;
+  const add = (rid,portions,wd)=>{
+    if(!rid) return;
+    const e = per[rid] || (per[rid]={portions:0,meals:0,days:[]});
+    e.portions += portions; e.meals++; if(!e.days.includes(DAYS[wd])) e.days.push(DAYS[wd]);
+  };
+  for(let i=0;i<n;i++){
+    const k = addDaysKey(start,i), wd = wdOf(k), ds = state.mealPlan[wd]||{};
+    for(const mt of MEALTYPES){
+      const sl = ds[mt]; if(!sl) continue;
+      if(sl.same) add(sl.family, 1+sx+sp, wd);
+      else { add(sl.family, 1+sx, wd); add(sl.sophia, sp, wd); }
+    }
+  }
+  return {start,per};
+}
+function toggleGroc(key){ state.groc[key] = !state.groc[key]; commit(); }
+function loadWeek(w){
+  if(!confirm("Replace the weekly plan with Week "+w+"? Your recipes and photos stay as they are.")) return;
+  state.mealPlan = seedPlan(w); commit();
+}
+function setTarget(f,el){ state.settings.targets[f] = +el.value||0; commit(); }
+function copyLunchToDinner(d){
+  const ds = state.mealPlan[d] = state.mealPlan[d]||{};
+  if(ds.Lunch) ds.Dinner = JSON.parse(JSON.stringify(ds.Lunch));
+  commit();
+}
+
 function vMeals(){
   const wd = new Date().getDay();
-  let h = `<h1>Meals</h1><p class="sub">Set family and Sophia's meals separately — she doesn't always eat what you eat.</p>`;
+  const T = state.settings.targets;
+  let h = `<h1>Meals</h1><p class="sub">Mains rotate every two days so food fatigue never kicks in. Prep stays small, and portions cover all three of you.</p>`;
+
+  // targets
+  h += `<div class="card"><h3>Your daily targets</h3>
+    <div class="row wrapover" style="margin-top:8px">
+      ${[["cal","Calories"],["p","Protein g"],["c","Carbs g"],["f","Fat g"]].map(([f,l])=>`<div class="field" style="flex:1;min-width:70px;margin:0"><label for="t-${f}">${l}</label><input id="t-${f}" type="number" inputmode="numeric" value="${T[f]}" onchange="setTarget('${f}',this)"></div>`).join("")}
+    </div>
+    <div class="row wrapover" style="margin-top:10px">
+      <div class="field" style="flex:1;min-width:120px;margin:0"><label for="sx">Santino eats × your portion</label><input id="sx" type="number" step="0.25" min="0.5" value="${state.settings.sx}" onchange="state.settings.sx=+this.value||1;commit()"></div>
+      <div class="field" style="flex:1;min-width:120px;margin:0"><label for="sp">Sofia eats × your portion</label><input id="sp" type="number" step="0.25" min="0.25" value="${state.settings.sofiaPortion}" onchange="state.settings.sofiaPortion=+this.value||0.5;commit()"></div>
+    </div>
+    <p class="tiny" style="margin-top:8px">Aim for 30g+ protein at breakfast, lunch and dinner. Macros are estimates, about 10% either way. Portions scale the grocery list below.</p></div>`;
+
+  // rotation
+  h += `<div class="card"><h3>Rotation</h3>
+    <p class="tiny">Each main runs two days (Sun–Mon, Tue–Wed, Thu–Fri); Saturday is flex. Alternate weeks, then swap anything in the plan below.</p>
+    <div class="row wrapover" style="margin-top:8px"><button onclick="loadWeek('A')">Load Week A</button><button onclick="loadWeek('B')">Load Week B</button></div>
+    <p class="tiny" style="margin-top:6px"><b>A:</b> adobo chicken · cheeseburger wraps · lemon-herb chicken<br><b>B:</b> Korean beef bowl · taco turkey skillet · cheesesteak bowl</p></div>`;
+
+  // prep plan (editable)
+  h += `<h2>Prep plan</h2><div class="card">` + (state.settings.prepPlan||[]).map(p=>`<div style="margin-bottom:10px">
+      <input value="${esc(p.title)}" style="font-weight:600" onchange="updPrepPlan('${p.id}','title',this)" aria-label="Prep step title">
+      <textarea rows="2" style="margin-top:4px" onchange="updPrepPlan('${p.id}','text',this)" aria-label="Prep step details">${esc(p.text)}</textarea>
+      <button class="small ghost" onclick="delPrepPlan('${p.id}')">Remove</button></div>`).join("")
+    + `<button class="small" onclick="state.settings.prepPlan.push({id:sid(),title:'New prep step',text:''});commit()">+ Add a prep step</button></div>`;
 
   // weekly plan
   h += `<h2>Weekly meal plan</h2>`;
-  if(!state.recipes.length){
-    h += `<div class="notice">Add a few meals in the recipe box below first, then come back here to schedule them.</div>`;
-  }
   for(const d of [1,2,3,4,5,6,0]){
     const daySlots = state.mealPlan[d] || {};
-    h += `<details${d===wd?" open":""}><summary>${FULLDAY[d]}${d===wd?" · today":""}</summary><div style="margin-top:10px">`;
+    const dm = dayMacros(d);
+    h += `<details${d===wd?" open":""}><summary>${FULLDAY[d]}${d===wd?" · today":""}${dm.n?` <span class="tiny" style="font-weight:400">· ≈ ${Math.round(dm.t[0])} cal · ${Math.round(dm.t[1])}P</span>`:""}</summary><div style="margin-top:10px">`;
     for(const mt of MEALTYPES){
       const slot = daySlots[mt] || {family:"",sophia:"",same:true};
       const opts = recipeOptsFor(mt);
       h += `<div style="margin-bottom:14px">
         <div class="row spread" style="margin-bottom:4px"><b class="tiny" style="text-transform:uppercase;letter-spacing:.05em">${mt}</b>
-          <button class="chip ${slot.same?"on":""}" onclick="toggleMealSame(${d},'${mt}')">${slot.same?"✓ Sophia eats the same":"Different for Sophia"}</button></div>
+          <button class="chip ${slot.same?"on":""}" onclick="toggleMealSame(${d},'${mt}')">${slot.same?"✓ Sofia eats the same":"Different for Sofia"}</button></div>
         <select onchange="setMealSlot(${d},'${mt}','family',this.value)"><option value="">${slot.same?"— pick a meal —":"— family meal —"}</option>
           ${opts.map(r=>`<option value="${r.id}" ${slot.family===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>
-        ${slot.same?"":`<select style="margin-top:6px" onchange="setMealSlot(${d},'${mt}','sophia',this.value)"><option value="">— Sophia's meal —</option>
+        ${slot.same?"":`<select style="margin-top:6px" onchange="setMealSlot(${d},'${mt}','sophia',this.value)"><option value="">— Sofia's meal —</option>
           ${opts.map(r=>`<option value="${r.id}" ${slot.sophia===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`}
       </div>`;
     }
+    h += `<div class="row wrapover"><button class="small" onclick="copyLunchToDinner(${d})">Dinner = same as lunch</button>
+      <button class="small ghost" onclick="clearMealDay(${d})">Clear this day</button></div>`;
+    if(dm.n){
+      h += `<div class="tiny" style="margin-top:8px">Your day (${dm.n} meal${dm.n===1?"":"s"} counted): ${pillFor(dm.t[0],T.cal,100," cal")} ${pillFor(dm.t[1],T.p,10,"P")} ${pillFor(dm.t[2],T.c,10,"C")} ${pillFor(dm.t[3],T.f,10,"F")} — green is within range of your targets.</div>`;
+    }
     h += `</div></details>`;
   }
-  h += `<p class="tiny">These show automatically in any Today block set to "Meal plan" in More — pick which meal (breakfast, lunch, dinner or snack) each block shows.</p>`;
+  h += `<p class="tiny">These show on Today in any block set to "Meal plan" — pick which meal each block shows in ✎ or More.</p>`;
 
-  // prep list
-  h += `<h2>Prep & shopping list</h2><div class="card">
+  // grocery by recipe
+  const g = groceryData();
+  const entries = Object.entries(g.per).map(([rid,e])=>({r:state.recipes.find(x=>x.id===rid),e})).filter(x=>x.r);
+  h += `<h2>Grocery list — by recipe</h2><div class="card">
+    <div class="row wrapover" style="margin-bottom:8px"><span class="tiny">Next</span>
+      ${[2,3,4,7].map(n=>`<button class="chip ${ui.grocDays===n?"on":""}" onclick="ui.grocDays=${n};render()">${n} days</button>`).join("")}
+      <span class="tiny">from today · sized for you + Santino + Sofia</span></div>`;
+  if(!entries.length) h += `<p class="tiny">Plan some meals above and the shopping list builds itself.</p>`;
+  for(const {r,e} of entries){
+    const lines = (r.ing||[]).map((i,idx)=>{
+      const key = `${g.start}|${ui.grocDays}|${r.id}|${idx}`, on = !!state.groc[key];
+      return `<button class="subcheck ${on?"on":""}" data-k="${esc(key)}" onclick="toggleGroc(this.dataset.k)"><span class="box">✓</span><span>${esc(i.n)} <span class="tiny">· ${fmtQty(i.q*e.portions,i.u)}</span></span></button>`;
+    }).join("");
+    const staples = (r.fx||[]).map((n,idx)=>{
+      const key = `${g.start}|${ui.grocDays}|${r.id}|fx${idx}`, on = !!state.groc[key];
+      return `<button class="subcheck ${on?"on":""}" data-k="${esc(key)}" onclick="toggleGroc(this.dataset.k)"><span class="box">✓</span><span>${esc(n)} <span class="tiny">· pantry check</span></span></button>`;
+    }).join("");
+    h += `<div style="margin:12px 0 4px"><b>${esc(r.name)}</b><div class="tiny">${e.meals} meal${e.meals===1?"":"s"} · ${e.days.join(", ")}</div></div>
+      <div class="subchecks">${lines||`<span class="tiny">No ingredients saved — add them in the recipe.</span>`}${staples}</div>`;
+  }
+  h += `<p class="tiny" style="margin-top:10px">Organic where possible. Quantities are rounded to the nearest quarter.</p></div>`;
+
+  // shopping to-do
+  h += `<h2>Shopping & prep to-do</h2><div class="card">
     <div class="row" style="margin-bottom:8px">
-      <input id="prep-in" placeholder="e.g. chop veggies for Mon–Wed, buy chicken…" onkeydown="if(event.key==='Enter')addPrep()">
+      <input id="prep-in" placeholder="e.g. buy beef the morning you bag it…" onkeydown="if(event.key==='Enter')addPrep()">
       <button class="primary" onclick="addPrep()" style="flex:none">Add</button></div>`
   + state.prepList.map(p=>`<div class="listitem">
       <button class="subcheck ${p.done?"on":""}" style="flex:none" onclick="togglePrep('${p.id}')" aria-label="Toggle"><span class="box">✓</span></button>
-      <div class="grow ${p.done?"faded":""}">${esc(p.text)}</div>
+      <input class="${p.done?"faded":""}" value="${esc(p.text)}" onchange="updPrep('${p.id}',this)" aria-label="To-do text">
       <button class="small ghost" onclick="delPrep('${p.id}')" aria-label="Delete">✕</button></div>`).join("")
   + (state.prepList.some(p=>p.done)?`<button class="small" style="margin-top:8px" onclick="state.prepList=state.prepList.filter(p=>!p.done);commit()">Clear checked</button>`:"")
   + `</div>`;
 
-  // recipe box, grouped by meal type
+  // recipe box
   h += `<h2>Recipe box</h2>`;
   if(!state.recipes.length) h += `<p class="tiny">No meals yet — add your first one below.</p>`;
   for(const cat of MEALTAGS){
     const list = state.recipes.filter(r=>r.tag===cat);
     if(!list.length) continue;
-    h += `<h3 style="margin:14px 0 8px">${cat}</h3><div class="rgrid" style="margin-bottom:4px">` + list.map(r=>{
-      if(ui.editRecipe===r.id) return recipeEditor(r);
-      return `<div class="rcard">
-        ${r.img?`<img class="rimg" src="${r.img}" alt="">`:`<div class="rimg emj">${tagEmoji(r.tag)}</div>`}
-        <div class="rbody">
-          <span class="rname">${esc(r.name)}</span>
-          <span class="pill" style="background:var(--accent-soft);color:var(--accent);align-self:flex-start">${esc(r.tag)}</span>
-          ${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener" style="font-size:.85rem">Open recipe ↗</a>`:""}
-          <div class="row tiny" style="justify-content:flex-end;gap:4px">
-            <button class="small ghost" onclick="ui.editRecipe='${r.id}';render()">Edit</button>
-          </div>
-        </div></div>`;
-    }).join("") + `</div>`;
+    h += `<h3 style="margin:14px 0 8px">${cat}</h3>` + list.map(r=> ui.editRecipe===r.id ? recipeEditor(r) : recipeCard(r)).join("");
   }
   const img = ui.newRecipeImg;
   h += `<div class="card"><h3>Add a meal</h3>
@@ -840,31 +1717,59 @@ function vMeals(){
       <button class="photobtn small">${img?"✓ Photo added":"📷 Add photo"}<input type="file" accept="image/*" onchange="newRecipePhoto(this)"></button>
       <button class="primary" onclick="addRecipe()">Save meal</button>
     </div>
-    <p class="tiny" style="margin-top:8px">A quick name is enough ("Taco night" counts). Photos make the cards pretty and are stored right on your phone.</p>
+    <p class="tiny" style="margin-top:8px">A quick name is enough — then tap Edit on it to add macros, ingredients and steps.</p>
   </div>`;
   return h;
 }
+function recipeCard(r){
+  const secs = [["Prep",r.prep],["Cook",r.cook],["Sofia",r.kid],["Notes",r.swap]].filter(([,t])=>t);
+  return `<details><summary>${esc(r.name)}${r.iron?` <span class="pill" style="background:var(--accent-soft);color:var(--accent)">iron-rich</span>`:""}</summary>
+    <div style="margin-top:8px">
+      ${r.img?`<img class="rimg" style="border-radius:10px;margin-bottom:8px" src="${r.img}" alt="">`:""}
+      ${r.sub?`<div class="tiny">${esc(r.sub)}</div>`:""}
+      ${r.m?`<div class="tiny num" style="margin:4px 0 8px">${macroTxt(r)} per portion</div>`:""}
+      ${(r.ing&&r.ing.length)?`<ul class="plainlist">${r.ing.map(i=>`<li>${esc(i.n)} <span class="tiny">· ${fmtQty(i.q,i.u)}</span></li>`).join("")}${(r.fx||[]).length?`<li class="tiny">Pantry: ${esc(r.fx.join(", "))}</li>`:""}</ul>`:""}
+      ${secs.map(([l,t])=>`<p><b>${l}:</b> ${esc(t)}</p>`).join("")}
+      ${r.url?`<p><a href="${esc(r.url)}" target="_blank" rel="noopener">Open recipe ↗</a></p>`:""}
+      <button class="small" onclick="ui.editRecipe='${r.id}';render()">✎ Edit</button>
+    </div></details>`;
+}
 function recipeEditor(r){
-  return `<div class="rcard" style="border-color:var(--accent);grid-column:1/-1"><div class="rbody" style="gap:8px">
-    <input value="${esc(r.name)}" onchange="r_upd('${r.id}','name',this)">
-    <input value="${esc(r.url||"")}" placeholder="Recipe link" onchange="r_upd('${r.id}','url',this)">
+  const m = r.m || ["","","",""];
+  return `<div class="card" style="border-color:var(--accent)">
+    <div class="field"><label>Name</label><input value="${esc(r.name)}" onchange="r_upd('${r.id}','name',this)"></div>
+    <div class="field"><label>One-line description</label><input value="${esc(r.sub||"")}" placeholder="e.g. Mexican · air fryer" onchange="r_upd('${r.id}','sub',this)"></div>
+    <div class="field"><label>Recipe link</label><input value="${esc(r.url||"")}" placeholder="optional" onchange="r_upd('${r.id}','url',this)"></div>
+    <div class="row wrapover"><select onchange="r_upd('${r.id}','tag',this)" style="flex:1">${MEALTAGS.map(t=>`<option ${r.tag===t?"selected":""}>${t}</option>`).join("")}</select>
+      <label style="margin:0;display:flex;align-items:center;gap:6px"><input type="checkbox" style="width:auto" ${r.iron?"checked":""} onchange="r_upd0('${r.id}','iron',this.checked)"> iron-rich</label></div>
+    <div class="row wrapover" style="margin-top:10px">
+      ${["Calories","Protein","Carbs","Fat"].map((l,i)=>`<div class="field" style="flex:1;min-width:64px;margin:0"><label>${l}</label><input type="number" inputmode="decimal" value="${m[i]}" onchange="r_macro('${r.id}',${i},this.value)"></div>`).join("")}</div>
+    <div class="field" style="margin-top:10px"><label>Ingredients for ONE portion — one per line, like “4.5 oz chicken breast”</label>
+      <textarea rows="5" onchange="r_ing('${r.id}',this.value)">${esc(ingText(r))}</textarea></div>
+    <div class="field"><label>Pantry staples to check (comma-separated)</label><input value="${esc((r.fx||[]).join(", "))}" onchange="r_fx('${r.id}',this.value)"></div>
+    <div class="field"><label>Prep / bagging</label><textarea rows="2" onchange="r_upd('${r.id}','prep',this)">${esc(r.prep||"")}</textarea></div>
+    <div class="field"><label>Cooking</label><textarea rows="3" onchange="r_upd('${r.id}','cook',this)">${esc(r.cook||"")}</textarea></div>
+    <div class="field"><label>Sofia's version</label><textarea rows="2" onchange="r_upd('${r.id}','kid',this)">${esc(r.kid||"")}</textarea></div>
+    <div class="field"><label>Swaps & notes</label><textarea rows="2" onchange="r_upd('${r.id}','swap',this)">${esc(r.swap||"")}</textarea></div>
     <div class="row wrapover">
-      <select onchange="r_upd('${r.id}','tag',this)" style="flex:1">${MEALTAGS.map(t=>`<option ${r.tag===t?"selected":""}>${t}</option>`).join("")}</select>
       <button class="photobtn small">📷 ${r.img?"Change":"Add"} photo<input type="file" accept="image/*" onchange="recipePhoto(this,'${r.id}')"></button>
-      ${r.img?`<button class="small ghost" onclick="r_upd0('${r.id}','img','')">Remove photo</button>`:""}
-    </div>
-    <div class="row">
+      ${r.img?`<button class="small ghost" onclick="r_upd0('${r.id}','img','')">Remove photo</button>`:""}</div>
+    <div class="row" style="margin-top:10px">
       <button class="primary small" onclick="ui.editRecipe=null;render()">Done</button>
       <button class="danger small" style="margin-left:auto" onclick="delRecipe('${r.id}')">Delete</button>
-    </div></div></div>`;
+    </div></div>`;
 }
 function r_upd(id,f,el){ r_upd0(id,f,el.value); }
 function r_upd0(id,f,v){ const r=state.recipes.find(x=>x.id===id); if(r){ r[f]=v; commit(); } }
+function r_macro(id,i,v){ const r=state.recipes.find(x=>x.id===id); if(!r) return; r.m = r.m || [0,0,0,0]; r.m[i] = +v||0; save(); }
+function r_ing(id,v){ const r=state.recipes.find(x=>x.id===id); if(r){ r.ing = parseIng(v); save(); } }
+function r_fx(id,v){ const r=state.recipes.find(x=>x.id===id); if(r){ r.fx = v.split(",").map(s=>s.trim()).filter(Boolean); save(); } }
 function addRecipe(){
   const name = document.getElementById("rc-name").value.trim();
   if(!name){ alert("Give it a name first — even just 'Taco night'."); return; }
-  state.recipes.push({id:sid(),name,url:document.getElementById("rc-url").value.trim(),tag:document.getElementById("rc-tag").value,img:ui.newRecipeImg||""});
-  ui.newRecipeImg = null; commit();
+  const r = {id:sid(),name,url:document.getElementById("rc-url").value.trim(),tag:document.getElementById("rc-tag").value,img:ui.newRecipeImg||"",ing:[],fx:[],prep:"",cook:"",kid:"",swap:"",sub:""};
+  state.recipes.push(r);
+  ui.newRecipeImg = null; ui.editRecipe = r.id; commit();
 }
 function delRecipe(id){
   if(!confirm("Delete this meal?")) return;
@@ -890,6 +1795,9 @@ function toggleMealSame(d,mt){
   state.mealPlan[d][mt].same = !state.mealPlan[d][mt].same;
   commit();
 }
+function clearMealDay(d){ if(confirm("Clear every meal on "+FULLDAY[d]+"?")){ state.mealPlan[d] = {}; commit(); } }
+function updPrepPlan(id,f,el){ const p=state.settings.prepPlan.find(x=>x.id===id); if(p){ p[f]=el.value; save(); } }
+function delPrepPlan(id){ state.settings.prepPlan = state.settings.prepPlan.filter(x=>x.id!==id); commit(); }
 function newRecipePhoto(el){
   shrinkPhoto(el, data=>{
     ui.newRecipeImg = data;
@@ -921,39 +1829,48 @@ function addPrep(){
   state.prepList.push({id:sid(),text:el.value.trim(),done:false}); commit();
 }
 function togglePrep(id){ const p=state.prepList.find(x=>x.id===id); if(p){p.done=!p.done; commit();} }
+function updPrep(id,el){ const p=state.prepList.find(x=>x.id===id); if(p){ p.text=el.value; save(); } }
 function delPrep(id){ state.prepList=state.prepList.filter(x=>x.id!==id); commit(); }
 
-/* ---------- SOPHIA ---------- */
-function vSophia(){
+/* ---------- SOFIA ---------- */
+function vSofia(){
   const picks = sophiaPicks(todayKey());
-  let h = `<h1>Sophia</h1><p class="sub">The afternoon runs itself when the ideas are ready in advance.</p>
+  let h = `<h1>Sofia</h1><p class="sub">The afternoon runs itself when the ideas are ready in advance.</p>
   <div class="card"><h3>Today's picks</h3>
     ${picks.map(p=>`<div class="listitem"><span class="catdot" style="background:var(--c-sophia)"></span><div class="grow">${esc(p.title)}<div class="tiny">${esc(p.tag)}</div></div></div>`).join("")}
     <button class="small" style="margin-top:8px" onclick="rerollSophia('${todayKey()}')">↻ Shuffle</button>
   </div>
-  <h2>Idea bank</h2><p class="tiny">These feed the 2:30 and 3:30 slots on the Today screen. Add your own — she'll never run out.</p>
+  <h2>Idea bank</h2><p class="tiny">These feed the activity slots in Sofia's afternoon plan on Today. Tap ✎ to change one. Reorder her afternoon in More → Sofia's afternoon.</p>
   <div class="card">`
-  + state.activities.map(a=>`<div class="listitem"><div class="grow">${esc(a.title)}</div><span class="pill" style="background:var(--accent-soft);color:var(--accent)">${esc(a.tag)}</span>
+  + state.activities.map(a=> ui.editAct===a.id
+    ? `<div class="listitem" style="flex-wrap:wrap"><input value="${esc(a.title)}" onchange="updAct('${a.id}','title',this)" style="flex:1;min-width:160px">
+        <select onchange="updAct('${a.id}','tag',this)" style="width:130px">${ACT_TAGS.map(t=>`<option ${a.tag===t?"selected":""}>${t}</option>`).join("")}</select>
+        <button class="small primary" onclick="ui.editAct=null;render()">Done</button></div>`
+    : `<div class="listitem"><div class="grow">${esc(a.title)}</div><span class="pill" style="background:var(--accent-soft);color:var(--accent)">${esc(a.tag)}</span>
+      <button class="small ghost" onclick="ui.editAct='${a.id}';render()" aria-label="Edit">✎</button>
       <button class="small ghost" onclick="delActivity('${a.id}')" aria-label="Delete">✕</button></div>`).join("")
   + `</div>
   <div class="card"><h3>Add an idea</h3>
     <div class="field"><input id="act-title" placeholder="Activity (e.g. Build a blanket fort)"></div>
     <div class="row"><select id="act-tag" style="flex:1">
-      ${["Fine motor","Gross motor","Language","Sensory","Creative","Cognitive","Imaginative","Practical life"].map(t=>`<option>${t}</option>`).join("")}
+      ${ACT_TAGS.map(t=>`<option>${t}</option>`).join("")}
     </select><button class="primary" onclick="addActivity()">Add</button></div>
   </div>`;
   return h;
 }
+const ACT_TAGS = ["Fine motor","Gross motor","Language","Sensory","Creative","Cognitive","Imaginative","Practical life"];
 function addActivity(){
   const t=document.getElementById("act-title").value.trim();
   if(!t) return;
   state.activities.push({id:sid(),title:t,tag:document.getElementById("act-tag").value}); commit();
 }
+function updAct(id,f,el){ const a=state.activities.find(x=>x.id===id); if(a){ a[f]=el.value; save(); } }
 function delActivity(id){ state.activities=state.activities.filter(a=>a.id!==id); commit(); }
 
 /* ---------- MORE ---------- */
 function vMore(){
   let h = `<h1>More</h1><p class="sub">Your brain dump, plus every knob and dial. Change anything — the app follows you, not the other way around.</p>`;
+  h += moreEditDay() + morePickup() + moreSofiaPlan() + moreJournalPrompts();
 
   // brain dump
   h += `<h2>Brain dump</h2><p class="tiny">Anything circling in your head goes here so it can stop circling. Tap ☀ to put it on today's list.</p>
@@ -1023,6 +1940,7 @@ function vMore(){
     <div class="row wrapover">
       <button onclick="exportData()">Export backup</button>
       <label style="margin:0"><input type="file" accept=".json" style="display:none" onchange="importData(this)"><span class="chip" style="cursor:pointer">Import backup</span></label>
+      ${hasBackup()?`<button onclick="restoreBackup()">Restore pre-update version</button>`:""}
       <button class="danger" onclick="resetData()">Reset everything</button>
     </div>
     <p class="tiny" style="margin-top:10px">Tip: on your phone, use your browser's <b>Add to Home Screen</b> so Clearday opens like an app.</p>
@@ -1036,31 +1954,6 @@ function rotEditor(kind, title, days){
   + `</div></details>`;
 }
 function updRot(kind,d,el){ if(!state.rotations[kind])state.rotations[kind]={}; state.rotations[kind][d]=el.value; save(); }
-function blockEditor(b){
-  return `<div class="card" style="border-color:var(--accent)">
-    <div class="field"><label>Title</label><input id="be-title" value="${esc(b.title)}"></div>
-    <div class="row"><div class="field" style="flex:1"><label>Start</label><input id="be-start" type="time" value="${b.start}"></div>
-      <div class="field" style="flex:1"><label>End (optional)</label><input id="be-end" type="time" value="${b.end||""}"></div></div>
-    <div class="field"><label>Note</label><textarea id="be-note" rows="2">${esc(b.note||"")}</textarea></div>
-    <div class="field"><label>What's inside</label><select id="be-type" onchange="document.getElementById('be-mealtype-wrap').style.display=this.value==='meals'?'':'none'">
-      ${Object.entries(TYPES).map(([t,label])=>`<option value="${t}" ${(b.type||"simple")===t?"selected":""}>${label}</option>`).join("")}</select></div>
-    <div class="field" id="be-mealtype-wrap" style="display:${b.type==="meals"?"":"none"}"><label>Which meal</label><select id="be-mealtype">
-      ${["Any",...MEALTYPES].map(t=>`<option value="${t}" ${(b.mealType||"Dinner")===t?"selected":""}>${t}</option>`).join("")}</select>
-      <p class="tiny" style="margin-top:4px">Recipes are assigned per day in the <a href="#" onclick="setTab('meals');return false">Meals tab</a>. "Any" shows every planned meal for the day in this block.</p></div>
-    <div class="row"><div class="field" style="flex:1"><label>Category</label><select id="be-cat">
-      ${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${b.cat===k?"selected":""}>${c.label}</option>`).join("")}</select></div>
-    <div class="field" style="flex:1"><label>Pickup days?</label><select id="be-pickup">
-      <option value="any" ${b.pickup==="any"?"selected":""}>Every day it runs</option>
-      <option value="only" ${b.pickup==="only"?"selected":""}>Pickup days only</option>
-      <option value="not" ${b.pickup==="not"?"selected":""}>No-pickup days only</option></select></div></div>
-    <div class="field"><label>Days</label><div class="dayselect" id="be-days">
-      ${ALLDAYS.map(d=>`<button class="${(b.days||[]).includes(d)?"on":""}" data-d="${d}" onclick="this.classList.toggle('on')">${DAYS[d]}</button>`).join("")}</div></div>
-    <div class="row">
-      <button class="primary" onclick="saveBlock('${b.id}')">Save</button>
-      <button class="ghost" onclick="ui.editBlock=null;render()">Cancel</button>
-      <button class="danger small" style="margin-left:auto" onclick="delBlock('${b.id}')">Delete block</button>
-    </div></div>`;
-}
 function saveBlock(id){
   const b = state.blocks.find(x=>x.id===id); if(!b) return;
   b.title=document.getElementById("be-title").value.trim()||b.title;
@@ -1075,8 +1968,9 @@ function saveBlock(id){
   ui.editBlock=null; commit();
 }
 function delBlock(id){ if(confirm("Delete this block from your day?")){ state.blocks=state.blocks.filter(b=>b.id!==id); ui.editBlock=null; commit(); } }
-function addBlock(){
-  const b={id:sid(),days:[...WEEKDAYS],pickup:"any",start:"12:00",end:"",title:"New block",note:"",cat:"self",type:"simple"};
+function addBlock(wd){
+  const days = (typeof wd==="number") ? [wd] : [...WEEKDAYS];
+  const b={id:sid(),days,pickup:"any",start:"12:00",end:"",title:"New block",note:"",cat:"self",type:"simple"};
   state.blocks.push(b); ui.editBlock=b.id; commit();
 }
 function dayToggles(fn, argPrefix, days){
@@ -1108,6 +2002,105 @@ function toggleDump(id){ const d=state.dump.find(x=>x.id===id); if(d){d.done=!d.
 function dumpToday(id){ const d=state.dump.find(x=>x.id===id); if(d){d.today=!d.today; commit();} }
 function delDump(id){ state.dump=state.dump.filter(x=>x.id!==id); commit(); }
 
+/* ---- editing helpers: every block, any day ---- */
+function moreEditDay(){
+  const wd = ui.moreDay!==null ? ui.moreDay : new Date().getDay();
+  let h = `<h2>Edit a day</h2><p class="tiny">Pick a weekday to see everything that happens on it. Edit a block, or take it off just that day — the other days stay as they are.</p>
+    <div class="dayselect" style="margin-bottom:10px">${[1,2,3,4,5,6,0].map(d=>`<button class="${wd===d?"on":""}" onclick="ui.moreDay=${d};ui.editBlock=null;render()">${DAYS[d]}</button>`).join("")}</div>`;
+  const list = state.blocks.filter(b=>(b.days||[]).includes(wd)).sort((a,b)=>a.start.localeCompare(b.start));
+  h += list.map(b=>{
+    if(ui.editBlock===b.id) return blockEditor(b, wd);
+    const cat = CATS[b.cat]||CATS.self;
+    return `<div class="listitem"><span class="catdot" style="background:var(${cat.v})"></span>
+      <div class="grow"><b>${fmtTime(b.start)}</b> ${esc(b.title)}
+        <div class="tiny">${b.pickup!=="any"?(b.pickup==="only"?"pickup days only":"no-pickup days only"):"every day it runs"}${b.type&&b.type!=="simple"?` · ${TYPES[b.type]||b.type}`:""}</div></div>
+      <button class="small" onclick="ui.editBlock='${b.id}';render()">Edit</button>
+      <button class="small ghost" onclick="removeFromDay('${b.id}',${wd})" aria-label="Remove from ${FULLDAY[wd]}" title="Remove from ${FULLDAY[wd]}">✕</button></div>`;
+  }).join("") || `<p class="tiny">Nothing on ${FULLDAY[wd]} yet.</p>`;
+  h += `<button style="margin-top:8px" onclick="addBlock(${wd})">+ Add a block to ${FULLDAY[wd]}</button>`;
+  return h;
+}
+function removeFromDay(id, wd){
+  const b = state.blocks.find(x=>x.id===id); if(!b) return;
+  const rest = (b.days||[]).filter(d=>d!==wd);
+  if(rest.length) b.days = rest;
+  else{
+    if(!confirm("That's the only day this block runs. Delete it?")) return;
+    state.blocks = state.blocks.filter(x=>x.id!==id);
+  }
+  ui.editBlock = null; commit();
+}
+function morePickup(){
+  const pd = state.settings.pickupDays||[];
+  return `<h2>Pickup days</h2><div class="card"><p class="tiny" style="margin-top:0">The days you usually pick Sofia up (leave 3:15, home by 4). On Today you can flip any single day with one tap.</p>
+    <div class="dayselect">${[1,2,3,4,5].map(d=>`<button class="${pd.includes(d)?"on":""}" onclick="pickupDay(${d})">${DAYS[d]}</button>`).join("")}</div></div>`;
+}
+function pickupDay(d){
+  const a = state.settings.pickupDays||[];
+  state.settings.pickupDays = a.includes(d) ? a.filter(x=>x!==d) : [...a,d].sort();
+  commit();
+}
+function moreSofiaPlan(){
+  const plan = state.settings.sofiaPlan||[];
+  return `<h2>Sofia's afternoon</h2><div class="card"><p class="tiny" style="margin-top:0">The 30-minute plan that shows on Today. “Activity 1/2” pull from the idea bank.</p>`
+  + plan.map(p=>`<div class="listitem" style="flex-wrap:wrap">
+      <input value="${esc(p.time)}" onchange="updSP('${p.id}','time',this.value)" style="width:70px" aria-label="Time">
+      <select onchange="updSP('${p.id}','kind',this.value)" style="width:120px"><option value="text" ${p.kind==="text"?"selected":""}>My own text</option><option value="act1" ${p.kind==="act1"?"selected":""}>Activity 1</option><option value="act2" ${p.kind==="act2"?"selected":""}>Activity 2</option></select>
+      ${p.kind==="text"?`<input value="${esc(p.text)}" onchange="updSP('${p.id}','text',this.value)" style="flex:1;min-width:140px" aria-label="What happens">`:`<span class="tiny grow">from the idea bank</span>`}
+      <button class="small ghost" onclick="delSP('${p.id}')" aria-label="Delete">✕</button></div>`).join("")
+  + `<button class="small" style="margin-top:8px" onclick="state.settings.sofiaPlan.push({id:sid(),time:'5:30',kind:'text',text:''});commit()">+ Add a slot</button></div>`;
+}
+function updSP(id,f,v){ const p=state.settings.sofiaPlan.find(x=>x.id===id); if(p){ p[f]=v; commit(); } }
+function delSP(id){ state.settings.sofiaPlan = state.settings.sofiaPlan.filter(x=>x.id!==id); commit(); }
+function moreJournalPrompts(){
+  return `<h2>Journal prompts</h2><details><summary>Reword the morning prompts</summary><div style="margin-top:10px">`
+  + jfields().map(([f,label,hint])=>`<div class="field"><input value="${esc(label)}" onchange="updJP('${f}','label',this.value)" aria-label="Prompt">
+      <input value="${esc(hint)}" style="margin-top:4px" placeholder="hint (optional)" onchange="updJP('${f}','hint',this.value)" aria-label="Hint"></div>`).join("")
+  + `<button class="small ghost" onclick="state.settings.jprompts={};commit()">Back to the originals</button></div></details>`;
+}
+function updJP(f,k,v){ const o=state.settings.jprompts=state.settings.jprompts||{}; o[f]=o[f]||{}; o[f][k]=v; save(); }
+
+function hasBackup(){ try{ return !!localStorage.getItem(KEY+"-backup-rev4"); }catch(e){ return false; } }
+function restoreBackup(){
+  if(!confirm("Go back to exactly how Clearday was before the Rebuild update? Anything you've logged since the update would be lost.")) return;
+  try{
+    const raw = localStorage.getItem(KEY+"-backup-rev4");
+    if(!raw){ alert("No saved copy was found."); return; }
+    const s = JSON.parse(raw), d = defaults();
+    s.rev = REV; s.whatsNew = null;
+    for(const k of Object.keys(d)) if(s[k]===undefined) s[k] = d[k];
+    for(const k of Object.keys(d.settings)) if(s.settings[k]===undefined) s.settings[k] = d.settings[k];
+    state = s; ui.loadError = false; commit();
+  }catch(e){ alert("Couldn't restore that copy."); }
+}
+
+function blockEditor(b, ctx){
+  return `<div class="card" style="border-color:var(--accent)">
+    <div class="field"><label>Title</label><input id="be-title" value="${esc(b.title)}"></div>
+    <div class="row"><div class="field" style="flex:1"><label>Start</label><input id="be-start" type="time" value="${b.start}"></div>
+      <div class="field" style="flex:1"><label>End (optional)</label><input id="be-end" type="time" value="${b.end||""}"></div></div>
+    <div class="field"><label>Note</label><textarea id="be-note" rows="2">${esc(b.note||"")}</textarea></div>
+    <div class="field"><label>What's inside</label><select id="be-type" onchange="document.getElementById('be-mealtype-wrap').style.display=this.value==='meals'?'':'none'">
+      ${Object.entries(TYPES).map(([t,label])=>`<option value="${t}" ${(b.type||"simple")===t?"selected":""}>${label}</option>`).join("")}</select></div>
+    <div class="field" id="be-mealtype-wrap" style="display:${b.type==="meals"?"":"none"}"><label>Which meal</label><select id="be-mealtype">
+      ${["Any",...MEALTYPES].map(t=>`<option value="${t}" ${(b.mealType||"Dinner")===t?"selected":""}>${t}</option>`).join("")}</select>
+      <p class="tiny" style="margin-top:4px">Recipes are assigned per day in the <a href="#" onclick="setTab('meals');return false">Meals tab</a>. "Any" shows every planned meal for the day in this block.</p></div>
+    <div class="row"><div class="field" style="flex:1"><label>Category</label><select id="be-cat">
+      ${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${b.cat===k?"selected":""}>${c.label}</option>`).join("")}</select></div>
+    <div class="field" style="flex:1"><label>Pickup days?</label><select id="be-pickup">
+      <option value="any" ${b.pickup==="any"?"selected":""}>Every day it runs</option>
+      <option value="only" ${b.pickup==="only"?"selected":""}>Pickup days only</option>
+      <option value="not" ${b.pickup==="not"?"selected":""}>No-pickup days only</option></select></div></div>
+    <div class="field"><label>Days it runs</label><div class="dayselect" id="be-days">
+      ${ALLDAYS.map(d=>`<button class="${(b.days||[]).includes(d)?"on":""}" data-d="${d}" onclick="this.classList.toggle('on')">${DAYS[d]}</button>`).join("")}</div></div>
+    <div class="row wrapover">
+      <button class="primary" onclick="saveBlock('${b.id}')">Save</button>
+      <button class="ghost" onclick="ui.editBlock=null;render()">Cancel</button>
+      ${ctx!==undefined?`<button class="small" onclick="removeFromDay('${b.id}',${ctx})">Remove from ${FULLDAY[ctx]}</button>`:""}
+      <button class="danger small" style="margin-left:auto" onclick="delBlock('${b.id}')">Delete block</button>
+    </div></div>`;
+}
+
 /* ---------- data ---------- */
 function exportData(){
   const name = "clearday-backup-"+todayKey()+".json";
@@ -1129,7 +2122,7 @@ function exportData(){
 function importData(el){
   const f = el.files[0]; if(!f) return;
   const r = new FileReader();
-  r.onload = ()=>{ try{ state = JSON.parse(r.result); commit(); alert("Backup restored."); }catch(e){ alert("That file doesn't look like a Clearday backup."); } };
+  r.onload = ()=>{ try{ const s = JSON.parse(r.result); if(!s || !s.blocks) throw 0; localStorage.setItem(KEY, JSON.stringify(s)); ui.loadError=false; load(); render(); alert("Backup restored."); }catch(e){ alert("That file doesn't look like a Clearday backup."); } };
   r.readAsText(f);
 }
 function resetData(){
