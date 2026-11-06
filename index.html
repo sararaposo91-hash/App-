@@ -240,8 +240,9 @@ const CATS = {
   health:{label:"Health",v:"--c-health"}, evening:{label:"Evening",v:"--c-evening"}
 };
 
-const REV = 6;
+const REV = 7;
 /* snapshot of the rev-5 defaults, used to tell untouched defaults from things you edited */
+const OLD6 = {"blocks":[{"id":"wake-g","days":[1,3,5],"pickup":"any","start":"04:40","end":"","title":"Wake up \u2014 gym at 5","note":"Clothes laid out the night before. Log when you actually woke \u2014 no judging.","cat":"self","type":"wake"},{"id":"checkin","days":[1],"pickup":"any","start":"04:42","end":"","title":"Monday: weigh in + waist \u2014 right after waking","note":"Before water, coffee or food. Same scale, same spot. Log it in Health \u2192 Check-in.","cat":"health","type":"checkin"},{"id":"gut-am-g","days":[1,3,5],"pickup":"any","start":"04:44","end":"","title":"Belly check \u2014 before you eat","note":"","cat":"health","type":"gut-am"},{"id":"supps-wake-g","days":[1,3,5],"pickup":"any","start":"04:45","end":"","title":"On waking \u2014 empty-stomach supplements","note":"Water only. Food comes after the gym.","cat":"self","type":"supps-wake"},{"id":"supps-pre","days":[1,3,5],"pickup":"any","start":"04:50","end":"","title":"Before the gym","note":"","cat":"self","type":"supps-pre"},{"id":"workout-s","days":[1,3],"pickup":"any","start":"05:00","end":"05:50","title":"Gym \u2014 strength (Ladder)","note":"Effort 6\u20137 out of 10: reps and tempo before weight. Short on time? The 10-minute minimum counts.","cat":"health","type":"gym"},{"id":"workout-c","days":[5],"pickup":"any","start":"05:00","end":"05:50","title":"Gym \u2014 treadmill walk + core","note":"20-minute walk at effort 5\u20136 (you can talk in full sentences), then your core block while you're warm. Short on time? The 10-minute minimum counts.","cat":"health","type":"simple"},{"id":"breakfast-g","days":[1,3,5],"pickup":"any","start":"06:00","end":"06:20","title":"Breakfast","note":"Protein first. Eat sitting down.","cat":"home","type":"meals","mealType":"Breakfast"},{"id":"supps-am-g","days":[1,3,5],"pickup":"any","start":"06:00","end":"","title":"With breakfast \u2014 supplements","note":"","cat":"self","type":"supps-am"},{"id":"wake","days":[2,4],"pickup":"any","start":"06:15","end":"","title":"Wake up","note":"Target 6:15. Once it feels easy, nudge it 5 minutes earlier. Log when you actually woke \u2014 no judging.","cat":"self","type":"wake"},{"id":"gut-am","days":[2,4],"pickup":"any","start":"06:17","end":"","title":"Belly check \u2014 before you eat","note":"","cat":"health","type":"gut-am"},{"id":"supps-wake","days":[2,4],"pickup":"any","start":"06:20","end":"","title":"On waking \u2014 empty-stomach supplements","note":"Water only. Wait about 30 minutes before food or coffee if you can.","cat":"self","type":"supps-wake"},{"id":"journal","days":[1,2,3,4,5],"pickup":"any","start":"06:25","end":"","title":"Morning journal + affirmation","note":"Affirmation \u00b7 manifestation \u00b7 3 gratitudes \u00b7 yesterday's win \u00b7 today's intention","cat":"self","type":"journal"},{"id":"meditate","days":[1,2,3,4,5],"pickup":"any","start":"06:35","end":"","title":"Meditation or affirmations","note":"10 minutes. Headphones on, eyes closed.","cat":"self","type":"links"},{"id":"back","days":[1,2,3,4,5],"pickup":"any","start":"06:50","end":"07:00","title":"7-minute back reset","note":"Cat-cow \u00d78 \u00b7 open book \u00d76 each side \u00b7 figure-4 stretch 45 sec each side \u00b7 hip-flexor stretch 45 sec each side \u00b7 glute bridge \u00d710 \u00b7 child's pose 45 sec. Wrists sore? Do cat-cow on your forearms.","cat":"health","type":"simple"},{"id":"breakfast","days":[2,4],"pickup":"any","start":"07:00","end":"07:20","title":"Breakfast","note":"Protein first. Eat sitting down.","cat":"home","type":"meals","mealType":"Breakfast"},{"id":"supps-am","days":[2,4],"pickup":"any","start":"07:00","end":"","title":"With breakfast \u2014 supplements","note":"","cat":"self","type":"supps-am"},{"id":"skin-am","days":[1,2,3,4,5],"pickup":"any","start":"07:20","end":"","title":"AM skincare","note":"","cat":"self","type":"skincare-am"},{"id":"dropoff","days":[2,3,4,5],"pickup":"any","start":"08:00","end":"08:15","title":"Sofia out the door","note":"Santino does school drop-off.","cat":"sophia","type":"simple"},{"id":"dropoff-mon","days":[1],"pickup":"any","start":"08:00","end":"09:00","title":"Monday school run \u2014 out of the house 8\u20139","note":"You take Sofia to school. Home by 9, at your desk 9:15.","cat":"sophia","type":"simple"},{"id":"work","days":[1,2,3,4,5],"pickup":"any","start":"09:15","end":"11:55","title":"Work \u2014 30 on / 10 off","note":"Declutter the office \u2014 one small zone per break (a drawer, a shelf, the desk, the floor). Stop when the break ends.","cat":"work","type":"pomo"},{"id":"supps-mid","days":[1,2,3,4,5],"pickup":"any","start":"10:25","end":"10:35","title":"Mid-morning supplements \u2014 empty stomach","note":"","cat":"self","type":"supps-mid"},{"id":"lunch","days":[1,2,3,4,5],"pickup":"any","start":"12:00","end":"12:30","title":"Lunch","note":"Eat sitting down. Planned meal below.","cat":"home","type":"meals","mealType":"Lunch"},{"id":"supps-lunch","days":[1,2,3,4,5],"pickup":"any","start":"12:00","end":"","title":"With lunch \u2014 supplements","note":"","cat":"self","type":"supps-lunch"},{"id":"amazon","days":[1,2,3,4,5],"pickup":"any","start":"12:40","end":"13:00","title":"Amazon \u2014 20 minutes","note":"","cat":"work","type":"rot-hustle"},{"id":"work-pm","days":[1,2,3,4,5],"pickup":"any","start":"13:00","end":"14:55","title":"Work \u2014 afternoon, 30 on / 10 off","note":"Stand up, drink water, stretch, look out a window \u2014 no phone scrolling.","cat":"work","type":"pomo"},{"id":"core","days":[1,2,3,4,5],"pickup":"any","start":"14:55","end":"15:15","title":"Deep core \u2014 20 minutes","note":"Slow and breath-led. Wrists sore in tabletop? Use your forearms or do it on your back.","cat":"health","type":"simple"},{"id":"pickup","days":[1,2,3,4,5],"pickup":"only","start":"15:15","end":"16:00","title":"Pick up Sofia","note":"Leave at 3:15 \u2014 home by 4:00.","cat":"sophia","type":"simple"},{"id":"sophia-pm","days":[1,2,3,4,5],"pickup":"any","start":"16:00","end":"17:45","title":"Sofia time \u2014 planned in 30-minute blocks","note":"","cat":"sophia","type":"sophia"},{"id":"dinner","days":[1,2,3,4,5],"pickup":"any","start":"17:45","end":"18:30","title":"Dinner \u2014 Sofia at 5:45, you at 6:00","note":"Stirring, washing veggies, setting the table = practical-life play.","cat":"home","type":"meals","mealType":"Dinner"},{"id":"bag","days":[6,1,3],"pickup":"any","start":"18:30","end":"18:45","title":"Bag tomorrow's main (12 min)","note":"While you clean up dinner \u2014 no separate prep block.","cat":"home","type":"bag"},{"id":"bedtime","days":[0,1,2,3,4,5,6],"pickup":"any","start":"19:30","end":"20:10","title":"Sofia bedtime routine","note":"Bath \u00b7 teeth \u00b7 books \u00b7 lights out.","cat":"sophia","type":"simple"},{"id":"pm-self","days":[0,1,2,3,4,5,6],"pickup":"any","start":"20:15","end":"","title":"PM skincare + bedtime supplements","note":"","cat":"self","type":"skincare-pm"},{"id":"evening","days":[0,1,2,3,4,5,6],"pickup":"any","start":"20:30","end":"21:30","title":"Evening block","note":"","cat":"evening","type":"rot-evening"},{"id":"gut-pm","days":[0,1,2,3,4,5,6],"pickup":"any","start":"21:30","end":"","title":"Belly check \u2014 tonight","note":"","cat":"health","type":"gut-pm"},{"id":"winddown-g","days":[0,2,4],"pickup":"any","start":"21:35","end":"21:45","title":"Wind down \u2014 lights out by 9:45","note":"Gym at 5 tomorrow: phone down \u00b7 gym clothes out \u00b7 10-minute kitchen tidy.","cat":"self","type":"simple"},{"id":"winddown","days":[1,3,5,6],"pickup":"any","start":"21:45","end":"22:00","title":"Wind down \u2014 in bed by 10","note":"Phone down \u00b7 gym clothes out \u00b7 10-minute kitchen tidy","cat":"self","type":"simple"},{"id":"wk-gut","days":[0,6],"pickup":"any","start":"08:00","end":"","title":"Belly check \u2014 before you eat","note":"","cat":"health","type":"gut-am"},{"id":"wk-supps-wake","days":[0,6],"pickup":"any","start":"08:02","end":"","title":"On waking \u2014 empty-stomach supplements","note":"Water only.","cat":"self","type":"supps-wake"},{"id":"wk-breakfast","days":[0,6],"pickup":"any","start":"08:30","end":"","title":"Breakfast","note":"","cat":"home","type":"meals","mealType":"Breakfast"},{"id":"wk-slow","days":[0,6],"pickup":"any","start":"08:30","end":"","title":"Slow morning \u2014 supplements + skincare","note":"No rush today.","cat":"self","type":"supps-am"},{"id":"wk-journal","days":[0,6],"pickup":"any","start":"09:00","end":"","title":"Journal + affirmation (if you feel like it)","note":"Even one gratitude counts.","cat":"self","type":"journal"},{"id":"wk-family","days":[0,6],"pickup":"any","start":"10:00","end":"12:30","title":"Family time","note":"Park, errand adventure, or nothing at all.","cat":"sophia","type":"simple"},{"id":"wk-mid","days":[0,6],"pickup":"any","start":"10:30","end":"","title":"Mid-morning supplements \u2014 empty stomach","note":"","cat":"self","type":"supps-mid"},{"id":"wk-supps-lunch","days":[0,6],"pickup":"any","start":"12:30","end":"","title":"With lunch \u2014 supplements","note":"","cat":"self","type":"supps-lunch"},{"id":"sun-prep","days":[0],"pickup":"any","start":"13:00","end":"13:35","title":"Sunday nap prep (35 min)","note":"4 oat jars \u00b7 4 chia cups \u00b7 1 pot of rice. Protein balls every second week. That's all.","cat":"home","type":"simple"},{"id":"wk-reset","days":[6],"pickup":"any","start":"13:00","end":"14:00","title":"One-hour house reset","note":"Timer on. Declutter one zone or catch up on laundry \u2014 then stop.","cat":"home","type":"simple"}],"rot":{"bonus":{"1":"Declutter one small zone (one drawer, one shelf \u2014 timer for 15 min)","2":"Digital cleanup: AI chats + phone photos","3":"Declutter one small zone (keep going where Monday left off)","4":"Digital cleanup: YouTube + business accounts","5":"Money & plans: budget check for the week + vacation ideas"},"hustle":{"1":"Amazon: one small step \u2014 film, edit or post a short video, or add products to your storefront","2":"Amazon: one small step \u2014 film, edit or post a short video, or add products to your storefront","3":"Amazon: one small step \u2014 film, edit or post a short video, or add products to your storefront","4":"Amazon: one small step \u2014 film, edit or post a short video, or add products to your storefront","5":"Amazon: one small step \u2014 film, edit or post a short video, or add products to your storefront"},"evening":{"0":"Plan the week: look at the calendar, budget glance, pick next week's dinners","1":"Coloring or a fun hobby \u2014 hands busy, brain off","2":"Game night \u2014 you play, guilt-free","3":"Free choice: games, show, or early night","4":"Movie or show together","5":"Date night with Santino \ud83d\udc9b","6":"Whatever feels good \u2014 no assignment tonight"}}};
 const OLD5 = {"blocks":[{"id":"wake","days":[1,2,3,4,5],"pickup":"any","start":"06:30","end":"","title":"Wake up","note":"This is your target time. Once it feels easy, move it 15 minutes earlier. Log when you actually woke \u2014 no judging.","cat":"self","type":"wake"},{"id":"gut-am","days":[1,2,3,4,5],"pickup":"any","start":"06:35","end":"","title":"Belly check \u2014 before you eat","note":"","cat":"health","type":"gut-am"},{"id":"checkin","days":[1],"pickup":"any","start":"06:38","end":"","title":"Monday check-in: weigh in + waist","note":"Fasted, same conditions every week. Log it in Health \u2192 Check-in.","cat":"health","type":"checkin"},{"id":"supps-am","days":[1,2,3,4,5],"pickup":"any","start":"06:40","end":"","title":"Water + morning supplements","note":"Probiotic next to the coffee mug.","cat":"self","type":"supps-am"},{"id":"journal","days":[1,2,3,4,5],"pickup":"any","start":"06:50","end":"","title":"Morning journal + affirmation","note":"Affirmation \u00b7 manifestation \u00b7 3 gratitudes \u00b7 yesterday's win \u00b7 today's intention","cat":"self","type":"journal"},{"id":"meditate","days":[1,2,3,4,5],"pickup":"any","start":"07:00","end":"","title":"Meditation or affirmations","note":"10 minutes. Headphones on, eyes closed.","cat":"self","type":"links"},{"id":"skin-am","days":[1,2,3,4,5],"pickup":"any","start":"07:20","end":"","title":"AM skincare","note":"","cat":"self","type":"skincare-am"},{"id":"dropoff","days":[1,2,3,4,5],"pickup":"any","start":"08:00","end":"08:15","title":"Sofia out the door","note":"Santino does school drop-off.","cat":"sophia","type":"simple"},{"id":"workout-s","days":[1,3],"pickup":"any","start":"08:15","end":"09:00","title":"Strength \u2014 Ladder","note":"Effort 6\u20137 out of 10: reps and tempo before weight. Short on time? The 10-minute minimum counts.","cat":"health","type":"gym"},{"id":"workout-c","days":[2,4,5],"pickup":"any","start":"08:15","end":"09:00","title":"Treadmill walk + core","note":"20-minute walk at effort 5\u20136 (you can talk in full sentences), then your core block while you're warm. Short on time? The 10-minute minimum counts.","cat":"health","type":"simple"},{"id":"work","days":[1,2,3,4,5],"pickup":"any","start":"09:15","end":"12:00","title":"Core work \u2014 your 9-to-5","note":"Protect this. One task at a time; park distractions in the brain dump.","cat":"work","type":"simple"},{"id":"bonus","days":[1,2,3,4,5],"pickup":"any","start":"12:00","end":"12:15","title":"15-minute reset","note":"","cat":"home","type":"rot-bonus"},{"id":"lunch","days":[1,2,3,4,5],"pickup":"any","start":"12:30","end":"12:55","title":"Lunch","note":"Eat sitting down. Planned meal below.","cat":"home","type":"meals","mealType":"Lunch"},{"id":"sidehustle","days":[2,4],"pickup":"any","start":"13:00","end":"14:00","title":"Side-hustle hour","note":"","cat":"work","type":"rot-hustle"},{"id":"work-pm","days":[1,3,5],"pickup":"any","start":"13:00","end":"15:00","title":"Core work \u2014 afternoon","note":"","cat":"work","type":"simple"},{"id":"work-pm2","days":[2,4],"pickup":"any","start":"14:00","end":"15:00","title":"Core work \u2014 afternoon","note":"","cat":"work","type":"simple"},{"id":"back","days":[1,2,3,4,5],"pickup":"any","start":"15:00","end":"15:10","title":"3-minute back reset","note":"Cat-cow \u00d78 \u00b7 open book \u00d76 each side \u00b7 figure-4 stretch 30 sec each side \u00b7 child's pose 30 sec","cat":"health","type":"simple"},{"id":"pickup","days":[1,2,3,4,5],"pickup":"only","start":"15:15","end":"16:00","title":"Pick up Sofia","note":"Leave at 3:15 \u2014 home by 4:00.","cat":"sophia","type":"simple"},{"id":"sophia-pm","days":[1,2,3,4,5],"pickup":"any","start":"16:00","end":"17:45","title":"Sofia time \u2014 planned in 30-minute blocks","note":"","cat":"sophia","type":"sophia"},{"id":"dinner","days":[1,2,3,4,5],"pickup":"any","start":"17:45","end":"18:30","title":"Dinner \u2014 Sofia can help","note":"Stirring, washing veggies, setting the table = practical-life play.","cat":"home","type":"meals","mealType":"Dinner"},{"id":"bag","days":[6,1,3],"pickup":"any","start":"18:30","end":"18:45","title":"Bag tomorrow's main (12 min)","note":"While you clean up dinner \u2014 no separate prep block.","cat":"home","type":"bag"},{"id":"bedtime","days":[0,1,2,3,4,5,6],"pickup":"any","start":"19:30","end":"20:10","title":"Sofia bedtime routine","note":"Bath \u00b7 teeth \u00b7 books \u00b7 lights out.","cat":"sophia","type":"simple"},{"id":"pm-self","days":[0,1,2,3,4,5,6],"pickup":"any","start":"20:15","end":"","title":"PM skincare + evening supplements","note":"","cat":"self","type":"skincare-pm"},{"id":"evening","days":[0,1,2,3,4,5,6],"pickup":"any","start":"20:30","end":"21:30","title":"Evening block","note":"","cat":"evening","type":"rot-evening"},{"id":"gut-pm","days":[0,1,2,3,4,5,6],"pickup":"any","start":"21:30","end":"","title":"Belly check \u2014 tonight","note":"","cat":"health","type":"gut-pm"},{"id":"winddown","days":[0,1,2,3,4,5,6],"pickup":"any","start":"21:45","end":"22:00","title":"Wind down \u2014 in bed by 10","note":"Phone down \u00b7 gym clothes out \u00b7 10-minute kitchen tidy","cat":"self","type":"simple"},{"id":"wk-slow","days":[0,6],"pickup":"any","start":"08:30","end":"","title":"Slow morning \u2014 supplements + skincare","note":"No rush today.","cat":"self","type":"supps-am"},{"id":"wk-gut","days":[0,6],"pickup":"any","start":"08:20","end":"","title":"Belly check \u2014 before you eat","note":"","cat":"health","type":"gut-am"},{"id":"wk-journal","days":[0,6],"pickup":"any","start":"09:00","end":"","title":"Journal + affirmation (if you feel like it)","note":"Even one gratitude counts.","cat":"self","type":"journal"},{"id":"wk-family","days":[0,6],"pickup":"any","start":"10:00","end":"12:30","title":"Family time","note":"Park, errand adventure, or nothing at all.","cat":"sophia","type":"simple"},{"id":"sun-prep","days":[0],"pickup":"any","start":"13:00","end":"13:35","title":"Sunday nap prep (35 min)","note":"4 oat jars \u00b7 4 chia cups \u00b7 1 pot of rice. Protein balls every second week. That's all.","cat":"home","type":"simple"},{"id":"wk-reset","days":[6],"pickup":"any","start":"13:00","end":"14:00","title":"One-hour house reset","note":"Timer on. Declutter one zone or catch up on laundry \u2014 then stop.","cat":"home","type":"simple"}],"rot":{"bonus":{"1":"Declutter one small zone (one drawer, one shelf \u2014 timer for 15 min)","2":"Digital cleanup: AI chats + phone photos","3":"Declutter one small zone (keep going where Monday left off)","4":"Digital cleanup: YouTube + business accounts","5":"Money & plans: budget check for the week + vacation ideas"},"hustle":{"2":"Amazon influencer: film or edit one short video","4":"AI side hustle: one concrete step (not research \u2014 output)"},"evening":{"0":"Plan the week: look at the calendar, budget glance, pick next week's dinners","1":"Coloring or a fun hobby \u2014 hands busy, brain off","2":"Game night \u2014 you play, guilt-free","3":"Free choice: games, show, or early night","4":"Movie or show together","5":"Date night with Santino \ud83d\udc9b","6":"Whatever feels good \u2014 no assignment tonight"}}};
 
 /* ---- the original (rev 4) defaults, kept ONLY so the update can tell which of your
@@ -295,6 +296,7 @@ function newBlocks(){ const G=[1,3,5], N=[2,4]; return [
   {id:"supps-wake",days:N,pickup:"any",start:"06:20",end:"",title:"On waking — empty-stomach supplements",note:"Water only. Wait about 30 minutes before food or coffee if you can.",cat:"self",type:"supps-wake"},
   {id:"journal",days:WEEKDAYS,pickup:"any",start:"06:25",end:"",title:"Morning journal + affirmation",note:"Affirmation · manifestation · 3 gratitudes · yesterday's win · today's intention",cat:"self",type:"journal"},
   {id:"meditate",days:WEEKDAYS,pickup:"any",start:"06:35",end:"",title:"Meditation or affirmations",note:"10 minutes. Headphones on, eyes closed.",cat:"self",type:"links"},
+  {id:"reading",days:WEEKDAYS,pickup:"any",start:"06:45",end:"06:50",title:"Spiritual reading — 5 minutes",note:"A page or two from a daily reader (The Book of Awakening works well), then sit with it for a breath.",cat:"self",type:"simple"},
   {id:"back",days:WEEKDAYS,pickup:"any",start:"06:50",end:"07:00",title:"7-minute back reset",note:"Cat-cow ×8 · open book ×6 each side · figure-4 stretch 45 sec each side · hip-flexor stretch 45 sec each side · glute bridge ×10 · child's pose 45 sec. Wrists sore? Do cat-cow on your forearms.",cat:"health",type:"simple"},
   {id:"breakfast",days:N,pickup:"any",start:"07:00",end:"07:20",title:"Breakfast",note:"Protein first. Eat sitting down.",cat:"home",type:"meals",mealType:"Breakfast"},
   {id:"supps-am",days:N,pickup:"any",start:"07:00",end:"",title:"With breakfast — supplements",note:"",cat:"self",type:"supps-am"},
@@ -307,17 +309,19 @@ function newBlocks(){ const G=[1,3,5], N=[2,4]; return [
   {id:"supps-lunch",days:WEEKDAYS,pickup:"any",start:"12:00",end:"",title:"With lunch — supplements",note:"",cat:"self",type:"supps-lunch"},
   {id:"amazon",days:WEEKDAYS,pickup:"any",start:"12:40",end:"13:00",title:"Amazon — 20 minutes",note:"",cat:"work",type:"rot-hustle"},
   {id:"work-pm",days:WEEKDAYS,pickup:"any",start:"13:00",end:"14:55",title:"Work — afternoon, 30 on / 10 off",note:"Stand up, drink water, stretch, look out a window — no phone scrolling.",cat:"work",type:"pomo"},
-  {id:"core",days:WEEKDAYS,pickup:"any",start:"14:55",end:"15:15",title:"Deep core — 20 minutes",note:"Slow and breath-led. Wrists sore in tabletop? Use your forearms or do it on your back.",cat:"health",type:"simple"},
+  {id:"core",days:WEEKDAYS,pickup:"any",start:"14:55",end:"15:15",title:"Deep core + pelvic floor — 20 minutes",note:"Slow and breath-led. Wrists sore in tabletop? Use your forearms or do it on your back.",cat:"health",type:"simple"},
   {id:"pickup",days:WEEKDAYS,pickup:"only",start:"15:15",end:"16:00",title:"Pick up Sofia",note:"Leave at 3:15 — home by 4:00.",cat:"sophia",type:"simple"},
   {id:"sophia-pm",days:WEEKDAYS,pickup:"any",start:"16:00",end:"17:45",title:"Sofia time — planned in 30-minute blocks",note:"",cat:"sophia",type:"sophia"},
   {id:"dinner",days:WEEKDAYS,pickup:"any",start:"17:45",end:"18:30",title:"Dinner — Sofia at 5:45, you at 6:00",note:"Stirring, washing veggies, setting the table = practical-life play.",cat:"home",type:"meals",mealType:"Dinner"},
   {id:"bag",days:[6,1,3],pickup:"any",start:"18:30",end:"18:45",title:"Bag tomorrow's main (12 min)",note:"While you clean up dinner — no separate prep block.",cat:"home",type:"bag"},
   {id:"bedtime",days:ALLDAYS,pickup:"any",start:"19:30",end:"20:10",title:"Sofia bedtime routine",note:"Bath · teeth · books · lights out.",cat:"sophia",type:"simple"},
   {id:"pm-self",days:ALLDAYS,pickup:"any",start:"20:15",end:"",title:"PM skincare + bedtime supplements",note:"",cat:"self",type:"skincare-pm"},
-  {id:"evening",days:ALLDAYS,pickup:"any",start:"20:30",end:"21:30",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
-  {id:"gut-pm",days:ALLDAYS,pickup:"any",start:"21:30",end:"",title:"Belly check — tonight",note:"",cat:"health",type:"gut-pm"},
-  {id:"winddown-g",days:[0,2,4],pickup:"any",start:"21:35",end:"21:45",title:"Wind down — lights out by 9:45",note:"Gym at 5 tomorrow: phone down · gym clothes out · 10-minute kitchen tidy.",cat:"self",type:"simple"},
-  {id:"winddown",days:[1,3,5,6],pickup:"any",start:"21:45",end:"22:00",title:"Wind down — in bed by 10",note:"Phone down · gym clothes out · 10-minute kitchen tidy",cat:"self",type:"simple"},
+  {id:"evening",days:[1,3,5,6],pickup:"any",start:"20:30",end:"21:30",title:"Evening block",note:"",cat:"evening",type:"rot-evening"},
+  {id:"evening-g",days:[0,2,4],pickup:"any",start:"20:30",end:"21:10",title:"Evening block — early night, gym tomorrow",note:"",cat:"evening",type:"rot-evening"},
+  {id:"gut-pm-g",days:[0,2,4],pickup:"any",start:"21:10",end:"",title:"Belly check — tonight",note:"",cat:"health",type:"gut-pm"},
+  {id:"winddown-g",days:[0,2,4],pickup:"any",start:"21:15",end:"21:30",title:"Wind down — lights out by 9:30",note:"Gym at 5 tomorrow, and you need the sleep. Phone down · gym clothes out · 10-minute kitchen tidy · laundry put away.",cat:"self",type:"simple"},
+  {id:"gut-pm",days:[1,3,5,6],pickup:"any",start:"21:30",end:"",title:"Belly check — tonight",note:"",cat:"health",type:"gut-pm"},
+  {id:"winddown",days:[1,3,5,6],pickup:"any",start:"21:45",end:"22:00",title:"Wind down — in bed by 10",note:"Phone down · gym clothes out · 10-minute kitchen tidy · laundry put away",cat:"self",type:"simple"},
   {id:"wk-gut",days:WEEKEND,pickup:"any",start:"08:00",end:"",title:"Belly check — before you eat",note:"",cat:"health",type:"gut-am"},
   {id:"wk-supps-wake",days:WEEKEND,pickup:"any",start:"08:02",end:"",title:"On waking — empty-stomach supplements",note:"Water only.",cat:"self",type:"supps-wake"},
   {id:"wk-breakfast",days:WEEKEND,pickup:"any",start:"08:30",end:"",title:"Breakfast",note:"",cat:"home",type:"meals",mealType:"Breakfast"},
@@ -332,7 +336,7 @@ function newBlocks(){ const G=[1,3,5], N=[2,4]; return [
 function newRotations(){ return {
   bonus:{1:"Declutter one small zone (one drawer, one shelf — timer for 15 min)",2:"Digital cleanup: AI chats + phone photos",3:"Declutter one small zone (keep going where Monday left off)",4:"Digital cleanup: YouTube + business accounts",5:"Money & plans: budget check for the week + vacation ideas"},
   hustle:{1:"Amazon: one small step — film, edit or post a short video, or add products to your storefront",2:"Amazon: one small step — film, edit or post a short video, or add products to your storefront",3:"Amazon: one small step — film, edit or post a short video, or add products to your storefront",4:"Amazon: one small step — film, edit or post a short video, or add products to your storefront",5:"Amazon: one small step — film, edit or post a short video, or add products to your storefront"},
-  evening:{0:"Plan the week: look at the calendar, budget glance, pick next week's dinners",1:"Coloring or a fun hobby — hands busy, brain off",2:"Game night — you play, guilt-free",3:"Free choice: games, show, or early night",4:"Movie or show together",5:"Date night with Santino 💛",6:"Whatever feels good — no assignment tonight"}
+  evening:{0:"Weekly setup + recap (10–15 min, Silk & Sonder), then an early night — gym tomorrow",1:"Yoga night out at Lifetime — or a hobby at home if you'd rather stay in",2:"Quiet evening, then an early night — gym tomorrow",3:"Self-care night: hair, body care, a long cozy shower with the good lighting",4:"A show with Santino, then lights out — gym tomorrow",5:"Gaming night or date night — let it run, guilt-free, with tea and a candle",6:"Weekly close (rose · bud · thorn) + time with Santino. Last weekend of the month: monthly recap in Mind → Monthly"}
 }; }
 function newSkincare(){
   const A = ALLDAYS;
@@ -402,6 +406,12 @@ function newHabits(){ return [
   {id:"h6",label:"Wind down on time",blockIds:["winddown","winddown-g"],perWeek:5},
   {id:"h7",label:"Deep core",blockIds:["core"],perWeek:5},
   {id:"h8",label:"7-minute back reset",blockIds:["back"],perWeek:5}
+]; }
+function newMonthlyList(){ return [
+  {id:"ml1",text:"Portugal 2028 roadmap: pick one concrete step for the month"},
+  {id:"ml2",text:"Plan the family weekends a few weeks ahead (in or out, and where)"},
+  {id:"ml3",text:"Book a breakfast date with Santino"},
+  {id:"ml4",text:"Quarter-end months (Mar, Jun, Sep, Dec): do the quarterly recap too"}
 ]; }
 function newPrepPlan(){ return [
   {id:sid(),title:"Sunday nap — 35 min",text:"4 oat jars, 4 chia cups, 1 pot of rice. Protein balls every second week."},
@@ -490,8 +500,10 @@ function defaults(){
       sofiaPlan:newSofiaPlan(), jprompts:{},
       habitMap:newHabits(), priorities:newPriorities(), nonneg:newNonneg(),
       dropOrder:"If a week falls apart, drop things in this order: decluttering → the Amazon slot → self-care. Workouts and the Sunday reset go last.",
-      prepPlan:newPrepPlan()
+      prepPlan:newPrepPlan(),
+      monthlyList:newMonthlyList()
     },
+    resets:{},
     skincare:sk,
     blocks:newBlocks(),
     rotations:newRotations(),
@@ -636,9 +648,22 @@ function mergeSupplements(s, d){
 
 /* rev 6 — gym at 5, supplement timing, Pomodoro work blocks, present-tense manifestations. Same rules as before:
    untouched defaults are refreshed, anything you edited or added is kept, and a copy of your data is saved first. */
-function migrate6(s, d, notes){
+const NOTES6 = [
+  "Gym is now 5:00 a.m. Monday, Wednesday and Friday (wake 4:40). Other weekdays wake at 6:15",
+  "Supplements are split by when to take them: on waking and mid-morning (empty stomach), before the gym, with breakfast, with lunch, before bed",
+  "Work runs in Pomodoros (30 on, 10 off) from 9:15, with office-declutter breaks. Amazon 12:40, deep core 2:55, 7-minute back reset at 6:50",
+  "Monday: school run 8–9, and weigh-in + waist right after waking",
+  "Manifestations are now written in the present tense — edit any day in Mind → Affirmations"
+];
+const NOTES7 = [
+  "New Mind → Monthly tab: close the month with pillar scores, set the next one, plus your monthly checklist (Portugal step, weekend plans, date with Santino)",
+  "Nights before the gym (Sun, Tue, Thu) now end with lights out by 9:30",
+  "Evenings follow your weekly rhythm: weekly setup Sunday, self-care Wednesday, gaming or date night Friday, weekly close Saturday",
+  "A 5-minute spiritual reading after meditation"
+];
+function migrate6(s, d, notes, OLD){
   const saved = s.blocks || [];
-  const oldById = {}; OLD5.blocks.forEach(b=>oldById[b.id]=b);
+  const oldById = {}; OLD.blocks.forEach(b=>oldById[b.id]=b);
   const savedIds = new Set(saved.map(b=>b.id));
   const out = [];
   for(const sb of saved){
@@ -659,7 +684,7 @@ function migrate6(s, d, notes){
   for(const kind of Object.keys(d.rotations)){
     r[kind] = r[kind] || {};
     for(const wd of Object.keys(d.rotations[kind])){
-      const cur = r[kind][wd], old = (OLD5.rot[kind]||{})[wd];
+      const cur = r[kind][wd], old = (OLD.rot[kind]||{})[wd];
       if(cur===undefined || cur===old) r[kind][wd] = d.rotations[kind][wd];
     }
   }
@@ -678,13 +703,6 @@ function migrate6(s, d, notes){
     for(const nh of d.settings.habitMap) if(["h7","h8"].includes(nh.id) && !hm.some(x=>x.id===nh.id)) hm.push(nh);
   }
 
-  notes.items = [
-    "Gym is now 5:00 a.m. Monday, Wednesday and Friday (wake 4:40). Other weekdays wake at 6:15",
-    "Supplements are split by when to take them: on waking and mid-morning (empty stomach), before the gym, with breakfast, with lunch, before bed",
-    "Work runs in Pomodoros (30 on, 10 off) from 9:15, with office-declutter breaks. Amazon 12:40, deep core 2:55, 7-minute back reset at 6:50",
-    "Monday: school run 8–9, and weigh-in + waist right after waking",
-    "Manifestations are now written in the present tense — edit any day in Mind → Affirmations"
-  ];
 }
 
 function load(){
@@ -729,14 +747,17 @@ function load(){
       const notes = {items:[],kept:[],noBackup:false};
       try{ localStorage.setItem(KEY+"-backup-rev4", raw); }catch(e){ notes.noBackup = true; }
       migrate5(s, d, notes);
-      s.rev = 6;   // migrate5 works from the current defaults, so nothing is left for rev 6
+      notes.items = notes.items.concat(NOTES6, NOTES7);
+      s.rev = REV;   // migrate5 works from the current defaults, so nothing is left to upgrade
       s.whatsNew = {ts:Date.now(), items:notes.items, kept:notes.kept, noBackup:notes.noBackup};
     }
-    if((s.rev||0) < 6){
+    if((s.rev||0) < REV){
+      const from = s.rev;
       const notes = {items:[],kept:[],noBackup:false};
-      try{ localStorage.setItem(KEY+"-backup-rev5", raw); }catch(e){ notes.noBackup = true; }
-      migrate6(s, d, notes);
-      s.rev = 6;
+      try{ localStorage.setItem(KEY+"-backup-rev"+from, raw); }catch(e){ notes.noBackup = true; }
+      migrate6(s, d, notes, from<6 ? OLD5 : OLD6);
+      notes.items = (from<6 ? NOTES6 : []).concat(NOTES7);
+      s.rev = REV;
       s.whatsNew = {ts:Date.now(), items:notes.items, kept:notes.kept, noBackup:notes.noBackup};
     }
     for(const k of Object.keys(d)) if(s[k] === undefined) s[k] = d[k];
@@ -886,6 +907,7 @@ function vToday(){
 
   let h = "";
   if(isToday && state.whatsNew) h += whatsNewCard();
+  if(isToday) h += resetNudge();
   h += `
   <header style="margin-bottom:14px">
     <p class="sub" style="margin:0">${isToday
@@ -1251,8 +1273,56 @@ function useAffInJournal(){
 function vMind(){
   const seg = `<div class="seg" role="tablist">
     <button class="${ui.mindSub==="journal"?"on":""}" onclick="ui.mindSub='journal';render()">Journal</button>
-    <button class="${ui.mindSub==="affirm"?"on":""}" onclick="ui.mindSub='affirm';render()">Affirmations</button></div>`;
-  return `<h1>Mind</h1>` + seg + (ui.mindSub==="affirm" ? vAffirm() : vJournal());
+    <button class="${ui.mindSub==="affirm"?"on":""}" onclick="ui.mindSub='affirm';render()">Affirmations</button>
+    <button class="${ui.mindSub==="reset"?"on":""}" onclick="ui.mindSub='reset';render()">Monthly</button></div>`;
+  return `<h1>Mind</h1>` + seg + (ui.mindSub==="affirm" ? vAffirm() : ui.mindSub==="reset" ? vReset() : vJournal());
+}
+
+
+/* ---- monthly reset: close the month, set the next one ---- */
+const RESET_PILLARS = [
+  ["peace","Mental peace & emotional safety"],["health","Health, energy & strength"],["self","Self-care & personal time"],
+  ["wealth","Wealth, abundance & freedom"],["work","Purposeful work & side business"],["family","Presence, family & joy"]
+];
+function monthName(ym){ const [Y,M]=ym.split("-").map(Number); return new Date(Y,M-1,1).toLocaleDateString("en-US",{month:"long"}); }
+function addMonth(ym,n){ const [Y,M]=ym.split("-").map(Number); const d=new Date(Y,M-1+n,1); return d.getFullYear()+"-"+pad(d.getMonth()+1); }
+function resetFor(ym){ state.resets = state.resets||{}; return state.resets[ym] = state.resets[ym] || {vision:"",p:{},checks:{}}; }
+function setResetScore(ym,id,n){ const r=resetFor(ym); r.p[id]=r.p[id]||{}; r.p[id].score = r.p[id].score===n ? 0 : n; commit(); }
+function setResetField(ym,id,f,el){ const r=resetFor(ym); if(id){ r.p[id]=r.p[id]||{}; r.p[id][f]=el.value; } else r[f]=el.value; save(); }
+function toggleResetCheck(ym,id){ const r=resetFor(ym); r.checks[id]=!r.checks[id]; commit(); }
+function resetNav(n){ ui.resetYm = addMonth(ui.resetYm||ymOf(todayKey()), n); render(); }
+function openReset(ym){ ui.tab="journal"; ui.mindSub="reset"; ui.resetYm=ym; render(); window.scrollTo(0,0); }
+function resetNudge(){
+  const tk=todayKey(), [Y,M,D]=tk.split("-").map(Number), last=new Date(Y,M,0).getDate();
+  const ym = D>=last-2 ? ymOf(tk) : D<=2 ? addMonth(ymOf(tk),-1) : null;
+  if(!ym) return "";
+  const r=(state.resets||{})[ym]; if(r && r.done) return "";
+  return `<div class="card whatsnew"><div class="spread"><div><h3>Monthly reset time 🌙</h3>
+    <p class="tiny" style="margin:4px 0 0">Close ${monthName(ym)} and set up ${monthName(addMonth(ym,1))} — about an hour, one sitting.</p></div>
+    <button class="small primary" onclick="openReset('${ym}')">Open</button></div></div>`;
+}
+function vReset(){
+  const ym = ui.resetYm || ymOf(todayKey()), nx = addMonth(ym,1), r = resetFor(ym), mm = monthMeta(nx);
+  const sc = id => (r.p[id]&&r.p[id].score)||0;
+  let h = `<div class="spread"><button class="small ghost" onclick="resetNav(-1)" aria-label="Previous month">‹</button>
+    <h2 style="margin:0">${monthName(ym)} → ${monthName(nx)}</h2><button class="small ghost" onclick="resetNav(1)" aria-label="Next month">›</button></div>
+    <p class="tiny">Do it in one sitting, ideally the last Saturday of the month. Part 1 looks back, part 2 sets up the next month.</p>`;
+  h += `<h2>1 · Close ${monthName(ym)}</h2><div class="card"><p class="tiny" style="margin-top:0">Score each pillar 1–5, then name what would move it up by one point.</p>`
+   + RESET_PILLARS.map(([id,label])=>`<div class="field"><label>${label}</label>
+      <div class="scale">${[1,2,3,4,5].map(n=>`<button class="${sc(id)===n?"on":""}" onclick="setResetScore('${ym}','${id}',${n})" aria-label="${label}: ${n}">${n}</button>`).join("")}</div>
+      <input style="margin-top:6px" placeholder="What would move this up?" value="${esc((r.p[id]||{}).up||"")}" onchange="setResetField('${ym}','${id}','up',this)"></div>`).join("") + `</div>`;
+  h += `<h2>2 · Set up ${monthName(nx)}</h2><div class="card">
+    <div class="field"><label>Theme word</label><input value="${esc(mm.theme)}" placeholder="e.g. Rebuild" onchange="setMonthField('${nx}','theme',this)"></div>
+    <div class="field"><label>369 statement</label><input value="${esc(mm.s369)}" onchange="setMonthField('${nx}','s369',this)"></div>
+    <p class="tiny">Non-negotiables live in <a href="#" onclick="openHealth('plan');return false">Health → Plan</a>. One anchor per pillar:</p>`
+   + RESET_PILLARS.map(([id,label])=>`<div class="field"><label>${label}</label><input placeholder="One anchor for the month" value="${esc((r.p[id]||{}).anchor||"")}" onchange="setResetField('${ym}','${id}','anchor',this)"></div>`).join("")
+   + `<div class="field"><label>By the last day of ${monthName(nx)} I will feel like myself again because…</label>
+      <textarea rows="2" onchange="setResetField('${ym}',null,'vision',this)">${esc(r.vision||"")}</textarea></div></div>`;
+  h += `<h2>3 · Checklist</h2><div class="card">`
+   + (state.settings.monthlyList||[]).map(x=>`<button class="subcheck ${r.checks[x.id]?"on":""}" onclick="toggleResetCheck('${ym}','${x.id}')"><span class="box">✓</span><span>${esc(x.text)}</span></button>`).join("")
+   + `<details style="margin-top:10px"><summary>Edit this checklist</summary><div style="margin-top:8px">${listEditor("monthlyList","Add a monthly to-do","Add")}</div></details></div>`;
+  h += `<button class="${r.done?"ghost":"primary"}" style="width:100%;margin-top:8px" onclick="resetFor('${ym}').done=!resetFor('${ym}').done;commit()">${r.done?"Marked done ✓ — tap to undo":"Mark this reset done"}</button>`;
+  return h;
 }
 
 function vAffirm(){
@@ -2082,8 +2152,7 @@ function vMore(){
     <div class="row wrapover">
       <button onclick="exportData()">Export backup</button>
       <label style="margin:0"><input type="file" accept=".json" style="display:none" onchange="importData(this)"><span class="chip" style="cursor:pointer">Import backup</span></label>
-      ${hasBackup(5)?`<button onclick="restoreBackup(5)">Restore before latest update</button>`:""}
-      ${hasBackup(4)?`<button onclick="restoreBackup(4)">Restore before Rebuild update</button>`:""}
+      ${[6,5,4].filter(n=>hasBackup(n)).map(n=>`<button onclick="restoreBackup(${n})">Restore ${n===6?"before the latest update":n===5?"before the routine update":"before the Rebuild update"}</button>`).join("\n      ")}
       <button class="danger" onclick="resetData()">Reset everything</button>
     </div>
     <p class="tiny" style="margin-top:10px">Tip: on your phone, use your browser's <b>Add to Home Screen</b> so Clearday opens like an app.</p>
@@ -2206,7 +2275,7 @@ function updJP(f,k,v){ const o=state.settings.jprompts=state.settings.jprompts||
 function hasBackup(n){ try{ return !!localStorage.getItem(KEY+"-backup-rev"+(n||4)); }catch(e){ return false; } }
 function restoreBackup(n){
   n = n||4;
-  if(!confirm("Go back to exactly how Clearday was before "+(n===5?"the latest routine update":"the Rebuild update")+"? Anything you've logged since then would be lost.")) return;
+  if(!confirm("Go back to exactly how Clearday was before that update? Anything you've logged since then would be lost.")) return;
   try{
     const raw = localStorage.getItem(KEY+"-backup-rev"+n);
     if(!raw){ alert("No saved copy was found."); return; }
